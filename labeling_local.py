@@ -15,8 +15,8 @@ imagewidth = 4000
 imageheight = 4000
 SHOW_ALREADY_LABELED = True
 
-lidar_folder = 'E:\\workspaces\\test_workspace\\lidar'
-augmentations_folder = 'E:\\workspaces\\test_workspace\\augmentation'
+lidar_folder = 'E:\\workspaces\\LIDAR_WORKSPACE\\lidar'
+augmentations_folder = 'E:\\workspaces\\LIDAR_WORKSPACE\\augmentation\\augmentables'
 
 def load_augmentation_samples(file, width, height, minx, miny):
     samples = open(file, 'r').readlines()
@@ -57,17 +57,22 @@ def on_init():
     all_miny = []
     all_samples = []
     all_labels = []
+    dataset_names_final = []
     for dataset_name in dataset_names:
+
+        if os.path.isfile(augmentations_folder + '\\' + dataset_name + 'augmentation_result_transformed.txt'):
+            continue
         print("Loading " + dataset_name)
         filename = lidar_folder + '\\' + dataset_name + '.txt'
         bmp, minx, miny = common.load_points(filename, imagewidth, imageheight, True)
-        samples, labels = load_augmentation_samples(augmentations_folder + '\\' + dataset_name + 'augmentation_result_transformed.txt', imagewidth, imageheight, minx, miny)
+        samples, labels = load_augmentation_samples(augmentations_folder + '\\' + dataset_name + 'augmentation_result.txt', imagewidth, imageheight, minx, miny)
         all_bmps.append(bmp)
         all_minx.append(minx)
         all_miny.append(miny)
         all_samples.append(samples)
         all_labels.append(labels)
-    return dataset_names, all_bmps, all_samples, all_labels, all_minx, all_miny
+        dataset_names_final.append(dataset_name)
+    return dataset_names_final, all_bmps, all_samples, all_labels, all_minx, all_miny
 
 class mainWindow():
 
@@ -84,18 +89,18 @@ class mainWindow():
         self.selected_points_by_dataset = {}
 
         # paint the labels!
-        for idx in range(len(self.dataset_names)):
-            X = self.bmps[idx]
-            for sampidx in range(len(self.all_labels[idx])):
-
-                color = 0.1
-                for pointidx in range(len(self.all_labels[idx][sampidx])):
-                    if pointidx % 2 == 0:
-                        color = random.random()
-                    x = int(self.all_labels[idx][sampidx][pointidx][0])
-                    y = int(self.all_labels[idx][sampidx][pointidx][1])
-                    X[max(0, x - 20):min(x + 20, X.shape[0]), max(0, y - 20):min(y + 20, X.shape[1])] = color
-            self.bmps[idx] = X
+        # for idx in range(len(self.dataset_names)):
+        #     X = self.bmps[idx]
+        #     for sampidx in range(len(self.all_labels[idx])):
+        #
+        #         color = 0.1
+        #         for pointidx in range(len(self.all_labels[idx][sampidx])):
+        #             if pointidx % 2 == 0:
+        #                 color = random.random()
+        #             x = int(self.all_labels[idx][sampidx][pointidx][0])
+        #             y = int(self.all_labels[idx][sampidx][pointidx][1])
+        #             X[max(0, x - 20):min(x + 20, X.shape[0]), max(0, y - 20):min(y + 20, X.shape[1])] = color
+        #     self.bmps[idx] = X
 
         # paint the samples
         # for idx in range(len(self.dataset_names)):
@@ -182,6 +187,8 @@ class mainWindow():
     def on_next_sample_button_click(self):
 
         if (self.currsampleidx > -1):
+            if len(self.current_chosen_points) == 0:
+                self.current_chosen_points = self.selected_points[self.currsampleidx - 1]
             self.selected_points[self.currsampleidx] = self.current_chosen_points.copy()
             self.current_chosen_points = []
 
@@ -212,6 +219,9 @@ class mainWindow():
             transformed_lines = []
             for i in range(len(lines)):
 
+                if i not in aug_index_to_points:
+                    aug_index_to_points[i] = aug_index_to_points[i-1] # if no labels for current one, just take the previous one
+
                 current_points = aug_index_to_points[i]
                 transformed_points = []
 
@@ -226,7 +236,7 @@ class mainWindow():
 
                     transformed_points.append((x / (imagewidth / 1000.0) + self.all_minx[dataset_index], y / (imagewidth / 1000.0) + self.all_miny[dataset_index]))
 
-                transformed_lines.append(lines[i] + " [" + ';'.join([str(x) for x in transformed_points]) + "]")
+                transformed_lines.append(lines[i] + " " + ' '.join([str(x).replace(' ', '').replace('(', '').replace(')', '') for x in transformed_points]))
             new_lines = '\n'.join(transformed_lines)
             open(augmentations_folder + '\\' + dataset_name + 'augmentation_result_transformed.txt', 'w').write(new_lines)
             print(augmentations_folder + '\\' + dataset_name + 'augmentation_result_transformed.txt saved')
