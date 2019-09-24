@@ -18,7 +18,22 @@ class HoughFiltered:
             nbrs = self.filter_points(nbrs, dataset[minptidx].scan_angle)
 
         # need to transform this into a bmp so that something may be fitted
-        bmpsizenbrs = self.bmpsize / 1000 * self.R
+        bmpsizenbrs = self.R / 1000 * self.bmpsize
+
+        # find minx, miny of nbrs
+        minx, miny = 100000000000, 1000000000000
+        for nbr in nbrs:
+            if (nbr.X < minx): minx = nbr.X
+            if (nbr.Y < miny): miny = nbr.Y
+
+        for i in range(len(nbrs)):
+            nbr[i].X = nbr[i].X - minx
+            nbr[i].Y = nbr[i].Y - miny
+
+
+        # fit into bmp
+
+
         labels = .split(';')
         labels = [l.split(',') for l in labels]
         labels = [(float(l[0][1:-1]) - minx, float(l[1][1:-1]) - miny) for l in labels]
@@ -50,10 +65,6 @@ class HoughFiltered:
 
     def transform_points_to_bmp(self, points):
         pass
-
-
-
-
 
     def hough_line(self, img):
       #Rho and Theta ranges
