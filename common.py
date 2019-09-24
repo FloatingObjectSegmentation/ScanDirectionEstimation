@@ -56,3 +56,47 @@ def load_points(lasfile, width, height, do_pickle=True):
         pickle.dump((X, minx, miny), open(filename, 'wb'))
 
     return X, minx, miny
+
+
+## AUGMENTABLE DEFINITION
+class Augmentable:
+
+    def __init__(self, idx, location, scale, tp, airplane_pos, dff, directions):
+        self.idx = idx
+        self.location = location
+        self.scale = scale
+        self.type = tp
+        self.airplane_pos = airplane_pos
+        self.distance_from_floor = dff
+        self.directions = directions
+
+    @staticmethod
+    def vecStringToFloatLst(line):
+        return [float(a) for a in line.split(',')]
+
+    @staticmethod
+    def fromLine(line):
+        parts = line.split(' ')
+        idx = int(parts[0])
+        location = Augmentable.vecStringToFloatLst(parts[1])
+        scale = Augmentable.vecStringToFloatLst(parts[2])
+        type = parts[3]
+        airplane_pos = Augmentable.vecStringToFloatLst(parts[4])
+        distance_from_floor = float(parts[5])
+        directions = [Augmentable.vecStringToFloatLst(part) for part in parts[6:]]
+        return Augmentable(idx, location, scale, type, airplane_pos, distance_from_floor, directions)
+
+
+## LIDAR DEFINITION
+class LidarPointXYZRGBAngle:
+
+    def __init__(self, line):
+        parts = line.split(' ')
+        self.X = float(parts[0])
+        self.Y = float(parts[1])
+        self.Z = float(parts[2])
+        self.R = int(parts[3])
+        self.G = int(parts[4])
+        self.B = int(parts[5])
+        self.scan_angle = int(parts[6])
+
