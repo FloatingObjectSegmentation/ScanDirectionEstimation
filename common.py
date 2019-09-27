@@ -9,13 +9,11 @@ tempfolder = 'E:\\workspaces\\LIDAR_WORKSPACE\\temp'
 
 def load_points(lasfile, width, height, do_pickle=True):
 
-
     # load lidar file and project it to 2D bmp. Return the projection.
     filename = tempfolder + '\\' + lasfile.split('\\')[-1] + str(width) + "_" + str(height) + ".bin"
     if (os.path.isfile(filename)):
         A, minx, miny = pickle.load(open(filename, 'rb'))
         return A, minx, miny
-
 
     # load the las file
     lines = open(lasfile, 'r').readlines()
@@ -26,7 +24,6 @@ def load_points(lasfile, width, height, do_pickle=True):
         y = float(parts[1])
         points.append((x,y))
 
-
     # find mins
     minx, miny = 10000000, 10000000
     for i in range(len(points)):
@@ -35,11 +32,9 @@ def load_points(lasfile, width, height, do_pickle=True):
         if points[i][1] < miny:
             miny = points[i][1]
 
-
     # normalize points
     for i in range(len(points)):
         points[i] = (points[i][0] - minx, points[i][1] - miny)
-
 
     # fill bitmap
     X = np.zeros((width, height))
@@ -51,11 +46,36 @@ def load_points(lasfile, width, height, do_pickle=True):
         except:
             pass
 
-
     if do_pickle:
         pickle.dump((X, minx, miny), open(filename, 'wb'))
 
     return X, minx, miny
+
+
+def transform_points_to_bmp(points, bmpsize):
+
+    # find minimum and maximum point within points
+    minx, miny = 100000000000, 10000000000
+    for pt in points:
+        if pt.x < minx: minx = pt.x
+        if pt.y < miny: miny = pt.y
+
+    # normalize points
+    for i in range(len(points)):
+        points[i].x -= minx
+        points[i].y -= miny
+
+    # fill to bmp
+    X = np.zeros((bmpsize, bmpsize))
+    for i in range(len(points)):
+        try:
+            x = (float(bmpsize) / 1000.0) * points[i].x
+            y = (float(bmpsize) / 1000.0) * points[i].y
+            X[int(x), int(y)] = 1
+        except:
+            pass
+
+    return X
 
 
 ## AUGMENTABLE DEFINITION

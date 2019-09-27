@@ -15,8 +15,31 @@ class HoughGlobal:
 
         nbrs, minptidx = self.find_points_within_R(dataset, augmentable)
 
-        if (filter):
-            nbrs = self.filter_points(nbrs, dataset[minptidx].scan_angle)
+        chunkdiff = X.
 
-        X = self.transform_points_to_bmp(nbrs)
-        self.hough_line(X)
+    def transform_points_into_bmp(self):
+
+
+    xparts = 50
+    yparts = 50
+
+    xdiff = X.shape[0] / xparts
+    ydiff = X.shape[1] / yparts
+
+    X_result = np.zeros(X.shape)
+    rand_attempts = 200
+
+    for i in range(rand_attempts):
+        i = random.random() * (xparts - 1)
+        j = random.random() * (yparts - 1)
+
+        Y = X[int(i * xdiff):int((i + 1) * xdiff), int(j * ydiff):int((j + 1) * ydiff)]
+        y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
+        mask = x ** 2 + y ** 2 <= (Y.shape[0] / 2) ** 2
+        Y = mask * Y
+
+        # visualize_matrix(Y)
+
+        accumulator, thetas, rhos = hough_line(Y)
+        Y = insert_resulting_lines(Y, accumulator, rhos, thetas)
+        X_result[int(i * xdiff):int((i + 1) * xdiff), int(j * ydiff):int((j + 1) * ydiff)] = Y
