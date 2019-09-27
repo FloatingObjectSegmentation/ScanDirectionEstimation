@@ -7,12 +7,11 @@ import random
 
 class HoughGlobal:
 
-    def __init__(self, dataset, chunk_size, bmpsize):
-        self.R = R
+    def __init__(self, chunk_size, bmpsize):
         self.bmpsize = bmpsize
         self.chunk_size = chunk_size # in meters
 
-    def run(self, dataset, randattempts): # hough global is augmentable independent
+    def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, randattempts): # hough global is augmentable independent
 
         # the difference in chunk size wrt the bmp
         chunkdiff = self.bmpsize / 1000.0 * self.chunk_size

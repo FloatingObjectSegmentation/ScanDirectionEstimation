@@ -6,7 +6,7 @@ from PIL import Image
 
 class HoughFiltered:
 
-    def __init__(self, dataset, R, bmpsize, filter=True):
+    def __init__(self, dataset: common.LidarDatasetNormXYZRGBAngle, R, bmpsize, filter=True):
         self.R = R
         self.bmpsize = bmpsize # this is how big the whole file should be, but in this case only the neighbors will be bmpized
         self.filter = filter
@@ -23,11 +23,14 @@ class HoughFiltered:
         accumulator, thetas, rhos = common.HoughTransform.hough_line(X)
         return accumulator, thetas, rhos
 
-    def find_points_within_R(self, dataset: list([common.LidarPointXYZRGBAngle]), augmentable: common.Augmentable):
+    def find_points_within_R(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
         result = []
+
+        aug = [augmentable.location[0] - dataset.minx, augmentable.location[1] - dataset.miny]
+
         minptidx, minptval = 0, 10000000000
         for idx, pt in enumerate(dataset):
-            dist = np.linalg.norm(np.array(augmentable.location) - np.array([pt.X, pt.Y, pt.Z]))
+            dist = np.linalg.norm(np.array(aug) - np.array([pt.X, pt.Y]))
             if dist > self.R:
                 result.append(pt)
             if dist < minptval:

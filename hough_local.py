@@ -14,7 +14,7 @@ class HoughGlobal:
         self.neighbor_distance = neighbor_distance
 
 
-    def run(self, dataset_name, dataset_norm, minx, miny, augmentable):
+    def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable):
         '''
         dataset_name = name in the form [0-9]{3}[_]{1}[0-9]{3}, to help with pickling
         dataset_norm = location normalized to 1000 meters, so find minimums and subtract them
@@ -27,13 +27,13 @@ class HoughGlobal:
         chunks = int(1000.0 / self.chunk_size)
 
         # find augmentable's chunk
-        idx_x = (augmentable.location[0] - minx) / self.chunk_size
-        idx_y = (augmentable.location[1] - miny) / self.chunk_size
+        idx_x = (augmentable.location[0] - dataset.minx) / self.chunk_size
+        idx_y = (augmentable.location[1] - dataset.miny) / self.chunk_size
 
         xidxs = list(range(max(idx_x - self.neighbor_distance, 0), min(chunks, idx_x + self.neighbor_distance + 1)))
         yidxs = list(range(max(idx_y - self.neighbor_distance, 0), min(chunks, idx_y + self.neighbor_distance + 1)))
 
-        X = common.transform_points_to_bmp(dataset_norm, self.bmpsize)
+        X = common.transform_points_to_bmp(dataset, self.bmpsize)
         X_result = np.zeros(X.shape)
 
         for i, j in itertools.product(idx_x, idx_y):

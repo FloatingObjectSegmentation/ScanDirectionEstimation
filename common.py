@@ -52,25 +52,14 @@ def load_points(lasfile, width, height, do_pickle=True):
     return X, minx, miny
 
 
-def transform_points_to_bmp(points, bmpsize):
-
-    # find minimum and maximum point within points
-    minx, miny = 100000000000, 10000000000
-    for pt in points:
-        if pt.x < minx: minx = pt.x
-        if pt.y < miny: miny = pt.y
-
-    # normalize points
-    for i in range(len(points)):
-        points[i].x -= minx
-        points[i].y -= miny
+def transform_points_to_bmp(points_norm, bmpsize):
 
     # fill to bmp
     X = np.zeros((bmpsize, bmpsize))
-    for i in range(len(points)):
+    for i in range(len(points_norm)):
         try:
-            x = (float(bmpsize) / 1000.0) * points[i].x
-            y = (float(bmpsize) / 1000.0) * points[i].y
+            x = (float(bmpsize) / 1000.0) * points_norm[i].x
+            y = (float(bmpsize) / 1000.0) * points_norm[i].y
             X[int(x), int(y)] = 1
         except:
             pass
@@ -119,6 +108,30 @@ class LidarPointXYZRGBAngle:
         self.G = int(parts[4])
         self.B = int(parts[5])
         self.scan_angle = int(parts[6])
+
+class LidarDatasetNormXYZRGBAngle:
+
+    def __init__(self, path):
+
+        self.name = path
+
+        lines = open(path, 'r').readlines()
+        points = [LidarPointXYZRGBAngle(line) for line in lines]
+        minx, miny = 10000000000000, 100000000000
+
+        for i in range(len(points)):
+            if points[i].X < minx: minx = points[i].X
+            if points[i].Y < miny: miny = points[i].Y
+
+        for i in range(len(points)):
+            points[i].X -= minx
+            points[i].Y -= miny
+
+        self.points = points
+        self.minx = minx
+        self.miny = miny
+
+
 
 
 ## HOUGH TRANSFORM WITH HELPER METHODS
