@@ -1,6 +1,7 @@
 import numpy as np
 import common
 import math
+from PIL import Image
 
 
 class HoughFiltered:
@@ -17,12 +18,8 @@ class HoughFiltered:
         if (filter):
             nbrs = self.filter_points(nbrs, dataset[minptidx].scan_angle)
 
-        # need to transform this into a bmp so that something may be fitted
-        bmpsizenbrs = self.bmpsize / 1000 * self.R
-        labels = .split(';')
-        labels = [l.split(',') for l in labels]
-        labels = [(float(l[0][1:-1]) - minx, float(l[1][1:-1]) - miny) for l in labels]
-        labels = [(x[0] * width / 1000.0, x[1] * height / 1000.0) for x in labels]
+        X = self.transform_points_to_bmp(nbrs)
+        self.hough_line(X)
 
 
 
@@ -49,11 +46,30 @@ class HoughFiltered:
         return filtered_nbrs
 
     def transform_points_to_bmp(self, points):
-        pass
+        bmpsizenbrs = self.bmpsize / 1000 * self.R
 
+        # find minimum and maximum point within nbrs
+        minx, miny = 100000000000, 10000000000
+        for pt in points:
+            if pt.x < minx: minx = pt.x
+            if pt.y < miny: miny = pt.y
 
+        # do the subtraction of minimums to make minimum (0,0)
+        for i in range(len(points)):
+            points[i].x -= minx
+            points[i].y -= miny
 
+        # fill to bmp
+        X = np.zeros((bmpsizenbrs, bmpsizenbrs))
+        for i in range(len(points)):
+            try:
+                x = (float(bmpsizenbrs) / 1000.0) * points[i].x
+                y = (float(bmpsizenbrs) / 1000.0) * points[i].y
+                X[int(x), int(y)] = 1
+            except:
+                pass
 
+        return X
 
     def hough_line(self, img):
       #Rho and Theta ranges
@@ -84,3 +100,40 @@ class HoughFiltered:
           accumulator[int(rho), int(t_idx)] += 1
 
       return accumulator, thetas, rhos
+
+    # auxiliary methods
+    def visualize_matrix(self, Y):
+        img = Image.new('RGB', (Y.shape[0], Y.shape[1]), 'white')  # Create a new black image
+        pixels = img.load()  # create the pixel map
+        for i in range(Y.shape[0]):
+            for j in range(Y.shape[1]):
+                if Y[i, j] == 1:
+                    pixels[i, j] = (255, 0, 0)
+                if Y[i, j] == 2:
+                    pixels[i, j] = (0, 255, 0)
+        img.show()
+
+    def visualize_accumulator(self, accumulator):
+        img = Image.new('RGB', (accumulator.shape[0], accumulator.shape[1]), 'white')
+        pixels = img.load()
+        for i in range(accumulator.shape[0]):
+            for j in range(accumulator.shape[1]):
+                pixels[i, j] = (int(accumulator[i, j] / np.max(accumulator) * 255), 0, 0)
+        img.show()
+
+    def insert_resulting_lines(self, Y, accumulator, rhos, thetas):
+
+        idx0 = np.argpartition(accumulator.ravel(), -3)[-3:]
+        idxs = idx0[accumulator.ravel()[idx0].argsort()][::-1]
+        for idx in idxs:
+            rho = rhos[int(idx / accumulator.shape[1])]
+            theta = thetas[idx % accumulator.shape[1]]
+
+            for i in range(Y.shape[0]):
+                try:
+                    x = i
+                    y = rho / math.sin(theta) - x * math.cos(theta) / math.sin(theta)
+                    Y[int(y), int(x)] = 2
+                except:
+                    pass
+        return Y
