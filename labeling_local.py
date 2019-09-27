@@ -35,7 +35,7 @@ def load_augmentation_samples(file, width, height, minx, miny):
             labels = [(x[0] * width / 1000.0, x[1] * height / 1000.0) for x in labels]
         else:
             labels = []
-        all_labels.append(labels)f
+        all_labels.append(labels)
 
 
 
