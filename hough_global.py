@@ -2,6 +2,7 @@ import numpy as np
 import common
 import math
 from PIL import Image
+import random
 
 
 class HoughGlobal:
@@ -9,37 +10,29 @@ class HoughGlobal:
     def __init__(self, dataset, chunk_size, bmpsize):
         self.R = R
         self.bmpsize = bmpsize
-        self.chunk_size = chunk_size
+        self.chunk_size = chunk_size # in meters
 
-    def run(self, dataset, augmentable):
+    def run(self, dataset, randattempts): # hough global is augmentable independent
 
-        nbrs, minptidx = self.find_points_within_R(dataset, augmentable)
+        # the difference in chunk size wrt the bmp
+        chunkdiff = self.bmpsize / 1000.0 * self.chunk_size
+        chunks = int(1000.0 / self.chunk_size)
 
-        chunkdiff = X.
+        X = common.transform_points_to_bmp(dataset, self.bmpsize)
+        X_result = np.zeros(X.shape)
+        for i in range(randattempts):
+            i = random.random() * (chunks - 1)
+            j = random.random() * (chunks - 1)
 
-    def transform_points_into_bmp(self):
+            # take chunks
+            Y = X[int(i * chunkdiff):int((i + 1) * chunkdiff), int(j * chunkdiff):int((j + 1) * chunkdiff)]
 
+            # circular mask
+            y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
+            mask = x ** 2 + y ** 2 <= (Y.shape[0] / 2) ** 2
+            Y = mask * Y
 
-    xparts = 50
-    yparts = 50
-
-    xdiff = X.shape[0] / xparts
-    ydiff = X.shape[1] / yparts
-
-    X_result = np.zeros(X.shape)
-    rand_attempts = 200
-
-    for i in range(rand_attempts):
-        i = random.random() * (xparts - 1)
-        j = random.random() * (yparts - 1)
-
-        Y = X[int(i * xdiff):int((i + 1) * xdiff), int(j * ydiff):int((j + 1) * ydiff)]
-        y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
-        mask = x ** 2 + y ** 2 <= (Y.shape[0] / 2) ** 2
-        Y = mask * Y
-
-        # visualize_matrix(Y)
-
-        accumulator, thetas, rhos = hough_line(Y)
-        Y = insert_resulting_lines(Y, accumulator, rhos, thetas)
-        X_result[int(i * xdiff):int((i + 1) * xdiff), int(j * ydiff):int((j + 1) * ydiff)] = Y
+            accumulator, thetas, rhos = common.HoughTransform.hough_line(Y)
+            Y = common.HoughTransform.insert_resulting_lines(Y, accumulator, rhos, thetas)
+            X_result[int(i * chunkdiff):int((i + 1) * chunkdiff), int(j * chunkdiff):int((j + 1) * chunkdiff)] = Y
+        common.HoughTransform.visualize_matrix(X_result)
