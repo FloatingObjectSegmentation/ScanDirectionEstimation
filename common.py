@@ -101,7 +101,7 @@ class LidarDatasetNormXYZRGBAngle:
 
     def find_closest_neighbour(self, point): # point = (x,y) tuple
         nearest_dist, nearest_ind = self.kdtree.query([point], k=1)
-        return nearest_ind
+        return nearest_ind[0][0]
 
 
     # auxiliary (private)
@@ -207,6 +207,49 @@ class HoughTransform:
         img.show()
 
     @staticmethod
+    def visualize_scananglematrix(Y):
+        img = Image.new('RGB', (Y.shape[0], Y.shape[1]), 'white')  # Create a new black image
+        pixels = img.load()  # create the pixel map
+        for i in range(Y.shape[0]):
+            for j in range(Y.shape[1]):
+                red, green, blue = 0,0,0
+                angle = Y[i, j]
+                if angle < 8:
+                    red = 0
+                    green = 0
+                    blue = 0
+                elif angle < 15:
+                    red = 255
+                    green = 0
+                    blue = 0
+                elif angle < 22:
+                    red = 0
+                    green = 255
+                    blue = 0
+                elif angle < 29:
+                    red = 0
+                    green = 0
+                    blue = 255
+                elif angle < 37:
+                    red = 255
+                    green = 255
+                    blue = 0
+                elif angle < 45:
+                    red = 255
+                    green = 0
+                    blue = 255
+                elif angle < 53:
+                    red = 0
+                    green = 255
+                    blue = 255
+                elif angle < 61:
+                    red = 255
+                    green = 255
+                    blue = 255
+                pixels[i,j] = (red, green, blue)
+        img.show()
+
+    @staticmethod
     def visualize_accumulator(accumulator):
         img = Image.new('RGB', (accumulator.shape[0], accumulator.shape[1]), 'white')
         pixels = img.load()
@@ -252,15 +295,31 @@ class PointOperations:
         return result, minptidx
 
     @staticmethod
-    def filter_points_by_angle(nbrlist: list([LidarPointXYZRGBAngle]), scan_angle, R):
+    def filter_points_by_angle(nbrs: PointSet, scan_angle, R):
         # compute translation between R taken and scan angle we need to take
-        distance_per_scan_degree = 2 * math.tan(30) * 1000 / 60
-        degs = R / distance_per_scan_degree
+        nbrlist = nbrs.points
+        distance_per_scan_degree = 2 * math.tan(30.0 * math.pi / 180.0) * 1000 / 60
+        degs = math.ceil(R / distance_per_scan_degree)
         filtered_nbrs = []
         for nbr in nbrlist:
             if nbr.scan_angle >= scan_angle - degs / 2 and nbr.scan_angle <= scan_angle + degs / 2:
                 filtered_nbrs.append(nbr)
-        return filtered_nbrs
+        nbrs.points = filtered_nbrs
+        return nbrs
+
+    @staticmethod
+    def transform_dataset_to_scananglebmp(dataset: LidarDatasetNormXYZRGBAngle, bmpsize):
+
+        X = np.zeros((bmpsize, bmpsize))
+        for i in range(len(dataset.points)):
+            try:
+                x = (float(bmpsize) / 1000.0) * dataset.points[i].X
+                y = (float(bmpsize) / 1000.0) * dataset.points[i].Y
+                X[int(x), int(y)] = dataset.points[i].scan_angle + 30
+            except:
+                pass
+
+        return X
 
     @staticmethod
     def transform_dataset_to_bmp(dataset: LidarDatasetNormXYZRGBAngle, bmpsize, do_pickle=True):
@@ -286,7 +345,7 @@ class PointOperations:
         return X
 
     @staticmethod
-    def transform_points_to_bmp(points: PointSet, bmpsize):
+    def transform_points_to_bmp(points: PointSet, bmpsize: int):
 
         # fill to bmp
         X = np.zeros((bmpsize, bmpsize))

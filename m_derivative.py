@@ -20,15 +20,20 @@ class DerivativeMethod:
         nbrs = [dataset.points[i] for i in nbr_indices]
         minptidx = dataset.find_closest_neighbour(aug_loc)
 
-        #nbrs, minptidx = common.PointOperations.find_points_within_R(dataset, augmentable, self.R)
+        bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * self.R)
+        nbrs = common.PointSet(nbrs)
+        RNG = common.PointOperations.transform_points_to_bmp(nbrs, bmpsizenbrs)
+
+        common.HoughTransform.visualize_matrix(RNG)
 
         print('perform filtering')
         if self.filter:
             nbrs = common.PointOperations.filter_points_by_angle(nbrs, dataset.points[minptidx].scan_angle, self.R)
 
         print('to bmp')
-        bmpsizenbrs = self.bmpsize_full_dataset / 1000 * self.R
+
         Y = common.PointOperations.transform_points_to_bmp(nbrs, bmpsizenbrs)
+        common.HoughTransform.visualize_matrix(Y)
 
         # circular mask
         y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
