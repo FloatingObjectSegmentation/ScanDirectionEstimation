@@ -4,9 +4,7 @@ import math
 from PIL import Image
 import random
 
-
-class HoughGlobal:
-
+class DerivativeMethod:
     def __init__(self, chunk_size, bmpsize):
         self.bmpsize = bmpsize
         self.chunk_size = chunk_size # in meters

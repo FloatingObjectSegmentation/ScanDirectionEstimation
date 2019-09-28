@@ -4,68 +4,10 @@ import pickle
 import os.path
 import math
 import random
+import re
+import time
 
 tempfolder = 'E:\\workspaces\\LIDAR_WORKSPACE\\temp'
-
-def load_points(lasfile, width, height, do_pickle=True):
-
-    # load lidar file and project it to 2D bmp. Return the projection.
-    filename = tempfolder + '\\' + lasfile.split('\\')[-1] + str(width) + "_" + str(height) + ".bin"
-    if (os.path.isfile(filename)):
-        A, minx, miny = pickle.load(open(filename, 'rb'))
-        return A, minx, miny
-
-    # load the las file
-    lines = open(lasfile, 'r').readlines()
-    points = []
-    for line in lines:
-        parts = line.split(' ')
-        x = float(parts[0])
-        y = float(parts[1])
-        points.append((x,y))
-
-    # find mins
-    minx, miny = 10000000, 10000000
-    for i in range(len(points)):
-        if points[i][0] < minx:
-            minx = points[i][0]
-        if points[i][1] < miny:
-            miny = points[i][1]
-
-    # normalize points
-    for i in range(len(points)):
-        points[i] = (points[i][0] - minx, points[i][1] - miny)
-
-    # fill bitmap
-    X = np.zeros((width, height))
-    for i in range(len(points)):
-        try:
-            x = (float(width) / 1000.0) * points[i][0]
-            y = (float(height) / 1000.0) * points[i][1]
-            X[int(x), int(y)] = 1
-        except:
-            pass
-
-    if do_pickle:
-        pickle.dump((X, minx, miny), open(filename, 'wb'))
-
-    return X, minx, miny
-
-
-def transform_points_to_bmp(points_norm, bmpsize):
-
-    # fill to bmp
-    X = np.zeros((bmpsize, bmpsize))
-    for i in range(len(points_norm)):
-        try:
-            x = (float(bmpsize) / 1000.0) * points_norm[i].x
-            y = (float(bmpsize) / 1000.0) * points_norm[i].y
-            X[int(x), int(y)] = 1
-        except:
-            pass
-
-    return X
-
 
 ## AUGMENTABLE DEFINITION
 class Augmentable:
@@ -111,12 +53,24 @@ class LidarPointXYZRGBAngle:
 
 class LidarDatasetNormXYZRGBAngle:
 
-    def __init__(self, path):
+    def __init__(self, folder, name, do_pickle=True):
 
-        self.name = path
+        self.name = name
+        self.do_pickle = do_pickle
+        self.path = folder + '/' + name
 
-        lines = open(path, 'r').readlines()
-        points = [LidarPointXYZRGBAngle(line) for line in lines]
+        if not self.load_pickled():
+
+            lines = open(self.path + '.txt', 'r').readlines()
+            lines_scan_angles = open(self.path + 'angle.txt', 'r').readlines()
+
+            self.points = [LidarPointXYZRGBAngle(line[0].rstrip() + ' ' + line[1].rstrip()) for line in zip(lines, lines_scan_angles)]
+            self.minx, self.miny, self.points = self.normalize_points(self.points)
+            if do_pickle:
+                self.store_pickled()
+
+
+    def normalize_points(self, points):
         minx, miny = 10000000000000, 100000000000
 
         for i in range(len(points)):
@@ -126,10 +80,28 @@ class LidarDatasetNormXYZRGBAngle:
         for i in range(len(points)):
             points[i].X -= minx
             points[i].Y -= miny
+        return minx, miny, points
 
-        self.points = points
-        self.minx = minx
-        self.miny = miny
+    def store_pickled(self):
+        filename = LidarDatasetNormXYZRGBAngle.getserializedfilename(self.path)
+        print(filename)
+        pickle.dump((self.path, self.minx, self.miny, self.points), open(filename, 'wb'))
+
+    def load_pickled(self):
+        filename = LidarDatasetNormXYZRGBAngle.getserializedfilename(self.path)
+        if os.path.isfile(filename) and self.do_pickle:
+            self.path, self.minx, self.miny, self.points = pickle.load(open(filename, 'rb'))
+            return True
+        return False
+
+    @staticmethod
+    def getserializedfilename(path):
+        return tempfolder + "\\" + path.replace('/', '_k_k_').replace('\\', '_k_k_').replace(':', '___')
+
+    @staticmethod
+    def getpath(serialized_filename):
+        fname = os.path.basename(serialized_filename)
+        return fname.replace('_k_k_', '/').replace('___', ':')
 
 
 
@@ -206,3 +178,77 @@ class HoughTransform:
                 except:
                     pass
         return Y
+
+
+def load_points(lasfile, width, height, do_pickle=True):
+
+    # load lidar file and project it to 2D bmp. Return the projection.
+    filename = tempfolder + '\\' + lasfile.split('\\')[-1] + str(width) + "_" + str(height) + ".bin"
+    if (os.path.isfile(filename)):
+        A, minx, miny = pickle.load(open(filename, 'rb'))
+        return A, minx, miny
+
+    # load the las file
+    lines = open(lasfile, 'r').readlines()
+    points = []
+    for line in lines:
+        parts = line.split(' ')
+        x = float(parts[0])
+        y = float(parts[1])
+        points.append((x,y))
+
+    # find mins
+    minx, miny = 10000000, 10000000
+    for i in range(len(points)):
+        if points[i][0] < minx:
+            minx = points[i][0]
+        if points[i][1] < miny:
+            miny = points[i][1]
+
+    # normalize points
+    for i in range(len(points)):
+        points[i] = (points[i][0] - minx, points[i][1] - miny)
+
+    # fill bitmap
+    X = np.zeros((width, height))
+    for i in range(len(points)):
+        try:
+            x = (float(width) / 1000.0) * points[i][0]
+            y = (float(height) / 1000.0) * points[i][1]
+            X[int(x), int(y)] = 1
+        except:
+            pass
+
+    if do_pickle:
+        pickle.dump((X, minx, miny), open(filename, 'wb'))
+
+    return X, minx, miny
+
+
+def transform_points_to_bmp(dataset: LidarDatasetNormXYZRGBAngle, bmpsize, do_pickle=True):
+
+    picklepath = tempfolder + "\\" + dataset.name + ".txt" + str(bmpsize) + "_" + str(bmpsize) + ".bin"
+
+    if do_pickle and os.path.isfile(picklepath):
+        return pickle.load(open(picklepath, 'rb'))
+
+    # fill to bmp
+    X = np.zeros((bmpsize, bmpsize))
+    for i in range(len(dataset.points)):
+        try:
+            x = (float(bmpsize) / 1000.0) * dataset.points[i].X
+            y = (float(bmpsize) / 1000.0) * dataset.points[i].Y
+            X[int(x), int(y)] = 1
+        except:
+            pass
+
+    if do_pickle:
+        pickle.dump(X, open(picklepath, 'wb'))
+
+    return X
+
+def get_dataset_names(lidar_folder):
+    files = [lidar_folder + '\\' + f for f in os.listdir(lidar_folder)]
+    pattern = '[0-9]{3}[_]{1}[0-9]{2,3}'
+    dataset_names = list(set([x.group(0) for x in [re.search(pattern, match, flags=0) for match in files] if x != None]))
+    return dataset_names

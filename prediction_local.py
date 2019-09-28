@@ -4,12 +4,14 @@ import pickle
 import os.path
 import math
 import random
+import hough_global
+import time
 
 import common
 
 # config
-augmentable_folder = ''
-lidar_folder = ''
+augmentable_folder = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables'
+lidar_folder = 'E:/workspaces/LIDAR_WORKSPACE/lidar'
 
 # augmentable reading
 def read_augmentables(filepath):
@@ -21,7 +23,16 @@ def read_lidar(filepath):
     return [common.LidarPointXYZRGBAngle(line) for line in lines]
 
 
-
+# load all lidar file names
+names = common.get_dataset_names(lidar_folder)
+for name in names:
+    name = '391_38'
+    method = hough_global.HoughGlobal(20, 3500)
+    start = time.time()
+    dataset = common.LidarDatasetNormXYZRGBAngle(lidar_folder, name)
+    end = time.time()
+    method.run(dataset, 50)
+    print(end - start)
 
 
 
