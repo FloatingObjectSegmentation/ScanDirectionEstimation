@@ -20,8 +20,6 @@ class DerivativeMethod:
         minpt = dataset.points[minptidx]
         minptalpha = minpt.scan_angle
 
-
-
         # S_whole = assume x = 1000, take 2.5 degrees of range for it
         R = 2.5 * DerivativeMethod.length_of_one_degree(minptalpha, 1000.0)
         bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
@@ -45,15 +43,13 @@ class DerivativeMethod:
         G = common.PointOperations.transform_points_to_bmp(angle_nbrs, bmpsizenbrs)
         common.HoughTransform.visualize_matrix(G)
 
-        # pairwise distances
-        # average distance is the distance of one degree
-        # we know that X * tg(alpha) = y, y and alpha are knows
-        # airplane height = X
+        # average points
+        p1, p2 = self.average_points_in_clusters(points=angle_nbrs)
 
-        # Scan direction verify
-            # take all nearest points with angle-1 and angle+1
-            # find the average point of each
-            # scan direction = connect them
+        # average distance is the distance of one degree - scan_direction and height are now computable
+        dist = math.sqrt(((p1[0] - p2[0]) ** 2) + ((p1[1] - p2[1]) ** 2))
+        scan_direction = (p1[0] - p2[0], p1[1] - p2[1])
+        height = self.height_at_degree(angle=minangle, dist=dist)
 
         # Interpolate the true scan angle
             # take scan direction
@@ -74,32 +70,31 @@ class DerivativeMethod:
                 minangle = x
         return minangle
 
-    def find_angle_islands(self, points):
-        x = list(set([p.scan_angle for p in points.points]))
-        x.sort()
+    def average_points_in_clusters(self, points: common.PointSet):
 
-        islands = []
-        curr = []
-        for i in range(1, len(x)):
+        angles = list(set([a.scan_angle for a in points.points]))
+        list1x = []
+        list1y = []
+        list2x = []
+        list2y = []
 
-            # handle main
-            if x[i-1] + 1 == x[i]:
-                curr.append(x[i-1])
-            else:
-                islands.append(curr[:])
-                curr = []
-                curr.append(x[i-1])
+        for point in points.points:
+            if point.scan_angle == angles[0]:
+                list1x.append(point.X)
+                list1y.append(point.Y)
+            if point.scan_angle == angles[1]:
+                list2x.append(point.X)
+                list2y.append(point.Y)
+        x1 = np.average(np.array(list1x))
+        y1 = np.average(np.array(list1y))
+        x2 = np.average(np.array(list2x))
+        y2 = np.average(np.array(list2y))
 
-        # edge case
-        if x[len(x) - 1] == x[len(x) - 2]:
-            curr.append(x[len(x) - 1])
-        else:
-            islands.append(curr[:])
-            curr = []
-            curr.append(x[i-1])
-        islands.append(curr)
+        return (x1, y1), (x2, y2)
 
-        return islands
+
+
+
 
     def nearest_angle_neighbors(self, dataset: common.LidarDatasetNormXYZRGBAngle, S_small: common.PointSetNormalized):
 
@@ -195,3 +190,11 @@ class DerivativeMethod:
         dist = (height * math.tan(alpha1)) - height * math.tan(alpha2)
         return dist
 
+    @staticmethod
+    def height_at_degree(angle, dist):
+        # we know that X * tg(alpha) = y, y and alpha are knowns
+        # airplane height = X
+        alpha1 = (angle + 1) * math.pi / 180.0
+        alpha2 = angle * math.pi / 180.0
+        height = dist / (math.tan(alpha1) - math.tan(alpha2))
+        return height
