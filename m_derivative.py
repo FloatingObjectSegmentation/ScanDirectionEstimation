@@ -14,34 +14,53 @@ class DerivativeMethod:
     # not that dataset is already in normalized space and augmentable in in original point cloud space!
     def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
 
-        print('finding points within R')
+        # find alpha of nearest neighbour
         aug_loc = (augmentable.location[0] - dataset.minx, augmentable.location[1] - dataset.miny)
-        nbr_indices = dataset.find_neighbours(aug_loc, R=self.R)
-        nbrs = [dataset.points[i] for i in nbr_indices]
         minptidx = dataset.find_closest_neighbour(aug_loc)
+        minpt = dataset.points[minptidx]
+        minptalpha = minpt.scan_angle
 
-        bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * self.R)
-        nbrs = common.PointSet(nbrs)
-        RNG = common.PointOperations.transform_points_to_bmp(nbrs, bmpsizenbrs)
+        # S_whole = assume x = 1000, take 2.5 degrees of range for it
+        R = 2.5 * DerivativeMethod.length_of_one_degree(minptalpha, 1000.0)
+        nbr_indices = dataset.find_neighbours(aug_loc, R=R)
+        S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
 
-        common.HoughTransform.visualize_matrix(RNG)
+        # S_big = take all points of neighbouring degrees
+        S_big = common.PointOperations.filter_points_by_angle_range(S_whole, minptalpha - 1, minptalpha + 1)
 
-        print('perform filtering')
-        if self.filter:
-            nbrs = common.PointOperations.filter_points_by_angle(nbrs, dataset.points[minptidx].scan_angle, self.R)
+        # S_small = from S_big take only the points that are the same degree
+        S_small = common.PointOperations.filter_points_by_angle(S_whole, minptalpha)
 
-        print('to bmp')
+        # scan direction = Fit by derivative method or hough transform to get scan direction
+        bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R) # size of 2.5 degs
+        Y = common.PointOperations.transform_points_to_bmp(S_small, bmpsizenbrs)
+        Y = self.circular_mask(Y)
+        minangle = self.compute_bestangle(Y)
+        self.visualize_at_derivative(Y, angle=minangle, padding=1)
 
-        Y = common.PointOperations.transform_points_to_bmp(nbrs, bmpsizenbrs)
-        common.HoughTransform.visualize_matrix(Y)
+        # Find the island of degree range
+        # from degree range estimate height
+            # take S_small
+            # find nearest points with the neigboring angle
+            # pairwise distances
+            # average distance is the distance of one degree
+            # we know that X * tg(alpha) = y, y and alpha are knows
+            # airplane height = X
 
-        # circular mask
-        y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
-        mask = x ** 2 + y ** 2 <= (Y.shape[0] / 2) ** 2
-        Y = mask * Y
+        # Scan direction verify
+            # take all nearest points with angle-1 and angle+1
+            # find the average point of each
+            # scan direction = connect them
 
-        print('compute fit')
-        # compute best fitting angle
+        # Interpolate the true scan angle
+            # take scan direction
+            # in this direction find alpha - 1 and alpha + 1 points
+            # linear interpolation to find out true value of angle
+
+        # airplane way
+            #@at mag at the end
+
+    def compute_bestangle(self, Y):
         minangle = 0
         minscore = 1000000
         for x in np.linspace(0, 3.14, 180):
@@ -50,8 +69,13 @@ class DerivativeMethod:
             if score < minscore:
                 minscore = score
                 minangle = x
+        return minangle
 
-        self.visualize_at_derivative(Y, angle=minangle, padding=1)
+    def circular_mask(self, Y):
+        y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
+        mask = x ** 2 + y ** 2 <= (Y.shape[0] / 2) ** 2
+        Y = mask * Y
+        return Y
 
     def derivative(self, Y, angle, padding):
         Y_trans = self.rotate_matrix(Y, angle)
@@ -122,3 +146,11 @@ class DerivativeMethod:
             A_trans[int(x),int(y)] = 1
 
         return A_trans
+
+    @staticmethod
+    def length_of_one_degree(angle, height):
+        alpha1 = (angle + 1) * math.pi / 180.0
+        alpha2 = angle * math.pi / 180.0
+        dist = (height * math.tan(alpha1)) - height * math.tan(alpha2)
+        return dist
+

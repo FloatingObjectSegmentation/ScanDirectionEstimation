@@ -295,14 +295,21 @@ class PointOperations:
         return result, minptidx
 
     @staticmethod
-    def filter_points_by_angle(nbrs: PointSet, scan_angle, R):
-        # compute translation between R taken and scan angle we need to take
+    def filter_points_by_angle(nbrs: PointSet, scan_angle):
         nbrlist = nbrs.points
-        distance_per_scan_degree = 2 * math.tan(30.0 * math.pi / 180.0) * 1000 / 60
-        degs = math.ceil(R / distance_per_scan_degree)
         filtered_nbrs = []
         for nbr in nbrlist:
-            if nbr.scan_angle >= scan_angle - degs / 2 and nbr.scan_angle <= scan_angle + degs / 2:
+            if nbr.scan_angle == scan_angle:
+                filtered_nbrs.append(nbr)
+        nbrs.points = filtered_nbrs
+        return nbrs
+
+    @staticmethod
+    def filter_points_by_angle_range(nbrs: PointSet, minangle, maxangle):
+        nbrlist = nbrs.points
+        filtered_nbrs = []
+        for nbr in nbrlist:
+            if nbr.scan_angle >= minangle and nbr.scan_angle <= maxangle:
                 filtered_nbrs.append(nbr)
         nbrs.points = filtered_nbrs
         return nbrs
