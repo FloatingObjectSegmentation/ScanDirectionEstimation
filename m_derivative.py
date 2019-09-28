@@ -20,8 +20,8 @@ class DerivativeMethod:
         minpt = dataset.points[minptidx]
         minptalpha = minpt.scan_angle
 
-        # S_whole = assume x = 1000, take 2.5 degrees of range for it
-        R = 2.5 * DerivativeMethod.length_of_one_degree(minptalpha, 1000.0)
+        # S_whole = assume x = 1000, take 2.5 degrees of range for it, divide by 2 because it's polmer!
+        R = 2.5 * DerivativeMethod.length_of_one_degree(minptalpha, 1000.0) / 2
         bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
 
         nbr_indices = dataset.find_neighbours(aug_loc, R=R)
