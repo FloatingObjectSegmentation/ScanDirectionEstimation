@@ -20,13 +20,14 @@ class DerivativeMethod:
         minpt = dataset.points[minptidx]
         minptalpha = minpt.scan_angle
 
+
+
         # S_whole = assume x = 1000, take 2.5 degrees of range for it
         R = 2.5 * DerivativeMethod.length_of_one_degree(minptalpha, 1000.0)
+        bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
+
         nbr_indices = dataset.find_neighbours(aug_loc, R=R)
         S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
-
-        # S_big = take all points of neighbouring degrees
-        S_big = common.PointOperations.filter_points_by_angle_range(S_whole, minptalpha - 1, minptalpha + 1)
 
         # S_small = from S_big take only the points that are the same degree
         S_small = common.PointOperations.filter_points_by_angle(S_whole, minptalpha)
@@ -38,14 +39,16 @@ class DerivativeMethod:
         minangle = self.compute_bestangle(Y)
         self.visualize_at_derivative(Y, angle=minangle, padding=1)
 
-        # Find the island of degree range
-        # from degree range estimate height
-            # take S_small
-            # find nearest points with the neigboring angle
-            # pairwise distances
-            # average distance is the distance of one degree
-            # we know that X * tg(alpha) = y, y and alpha are knows
-            # airplane height = X
+        # FROM DEGREE RANGE ESTIMATE HEIGHT
+        # find nearest points with the neighboring angle
+        angle_nbrs = self.nearest_angle_neighbors(dataset=dataset, S_small=S_small)
+        G = common.PointOperations.transform_points_to_bmp(angle_nbrs, bmpsizenbrs)
+        common.HoughTransform.visualize_matrix(G)
+
+        # pairwise distances
+        # average distance is the distance of one degree
+        # we know that X * tg(alpha) = y, y and alpha are knows
+        # airplane height = X
 
         # Scan direction verify
             # take all nearest points with angle-1 and angle+1
@@ -70,6 +73,44 @@ class DerivativeMethod:
                 minscore = score
                 minangle = x
         return minangle
+
+    def find_angle_islands(self, points):
+        x = list(set([p.scan_angle for p in points.points]))
+        x.sort()
+
+        islands = []
+        curr = []
+        for i in range(1, len(x)):
+
+            # handle main
+            if x[i-1] + 1 == x[i]:
+                curr.append(x[i-1])
+            else:
+                islands.append(curr[:])
+                curr = []
+                curr.append(x[i-1])
+
+        # edge case
+        if x[len(x) - 1] == x[len(x) - 2]:
+            curr.append(x[len(x) - 1])
+        else:
+            islands.append(curr[:])
+            curr = []
+            curr.append(x[i-1])
+        islands.append(curr)
+
+        return islands
+
+    def nearest_angle_neighbors(self, dataset: common.LidarDatasetNormXYZRGBAngle, S_small: common.PointSetNormalized):
+
+        angle = S_small.points[0].scan_angle
+        neighbours = []
+        for point in S_small.points:
+            nbridxs = dataset.find_neighbours((point.X, point.Y), R=1.0)
+            for idx in nbridxs:
+                if dataset.points[idx].scan_angle == angle - 1 or dataset.points[idx].scan_angle == angle + 1:
+                    neighbours.append(dataset.points[idx])
+        return common.PointSetNormalized(neighbours)
 
     def circular_mask(self, Y):
         y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]

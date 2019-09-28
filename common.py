@@ -70,6 +70,7 @@ class LidarPointXYZRGBAngle:
         self.G = int(parts[4])
         self.B = int(parts[5])
         self.scan_angle = int(parts[6])
+        self.origidx = 0
 
 class LidarDatasetNormXYZRGBAngle:
 
@@ -85,6 +86,9 @@ class LidarDatasetNormXYZRGBAngle:
             lines_scan_angles = open(self.path + 'angle.txt', 'r').readlines()
 
             self.points = [LidarPointXYZRGBAngle(line[0].rstrip() + ' ' + line[1].rstrip()) for line in zip(lines, lines_scan_angles)]
+            for i in range(len(self.points)):
+                self.points[i].origidx = i
+
             self.minx, self.miny, self.points = self.normalize_points(self.points)
 
             pts2d = [(p.X, p.Y) for p in self.points]
@@ -138,7 +142,7 @@ class LidarDatasetNormXYZRGBAngle:
         fname = os.path.basename(serialized_filename)
         return fname.replace('_k_k_', '/').replace('___', ':')
 
-class PointSet:
+class PointSetNormalized:
 
     def __init__(self, points): # should be list(LidarPointXYZRGBAngle)
         self.minx, self.miny, self.maxx, self.maxy, self.points = self.normalize_points(points)
@@ -147,17 +151,37 @@ class PointSet:
         minx, miny = 10000000000000, 100000000000
         maxx, maxy = 0, 0
 
+        self.points = points[:]
         for i in range(len(points)):
-            if points[i].X < minx: minx = points[i].X
-            if points[i].Y < miny: miny = points[i].Y
-            if points[i].X > maxx: maxx = points[i].X
-            if points[i].Y > maxy: maxy = points[i].Y
+            if self.points[i].X < minx: minx = self.points[i].X
+            if self.points[i].Y < miny: miny = self.points[i].Y
+            if self.points[i].X > maxx: maxx = self.points[i].X
+            if self.points[i].Y > maxy: maxy = self.points[i].Y
 
         for i in range(len(points)):
-            points[i].X -= minx
-            points[i].Y -= miny
+            self.points[i].X -= minx
+            self.points[i].Y -= miny
 
-        return minx, miny, maxx, maxy, points
+        return minx, miny, maxx, maxy, self.points
+
+class PointSet:
+
+    def __init__(self, points): # should be list(LidarPointXYZRGBAngle)
+        self.points = points[:]
+        self.minx, self.miny, self.maxx, self.maxy = self.find_extremes(self.points)
+
+    def find_extremes(self, points):
+        minx, miny = 10000000000000, 100000000000
+        maxx, maxy = 0, 0
+
+        for i in range(len(points)):
+            if self.points[i].X < minx: minx = self.points[i].X
+            if self.points[i].Y < miny: miny = self.points[i].Y
+            if self.points[i].X > maxx: maxx = self.points[i].X
+            if self.points[i].Y > maxy: maxy = self.points[i].Y
+
+        return minx, miny, maxx, maxy
+
 
 
 ## HOUGH TRANSFORM WITH HELPER METHODS
@@ -301,8 +325,7 @@ class PointOperations:
         for nbr in nbrlist:
             if nbr.scan_angle == scan_angle:
                 filtered_nbrs.append(nbr)
-        nbrs.points = filtered_nbrs
-        return nbrs
+        return PointSet(filtered_nbrs)
 
     @staticmethod
     def filter_points_by_angle_range(nbrs: PointSet, minangle, maxangle):
@@ -311,8 +334,7 @@ class PointOperations:
         for nbr in nbrlist:
             if nbr.scan_angle >= minangle and nbr.scan_angle <= maxangle:
                 filtered_nbrs.append(nbr)
-        nbrs.points = filtered_nbrs
-        return nbrs
+        return PointSet(filtered_nbrs)
 
     @staticmethod
     def transform_dataset_to_scananglebmp(dataset: LidarDatasetNormXYZRGBAngle, bmpsize):
