@@ -4,7 +4,7 @@ import pickle
 import os.path
 import math
 import random
-import hough_global
+import m_hough_global
 import time
 
 import common
@@ -27,7 +27,7 @@ def read_lidar(filepath):
 names = common.get_dataset_names(lidar_folder)
 for name in names:
     name = '391_38'
-    method = hough_global.HoughGlobal(20, 3500)
+    method = m_hough_global.HoughGlobal(20, 3500)
     start = time.time()
     dataset = common.LidarDatasetNormXYZRGBAngle(lidar_folder, name)
     end = time.time()

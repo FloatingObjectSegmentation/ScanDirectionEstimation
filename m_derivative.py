@@ -5,61 +5,38 @@ from PIL import Image
 import random
 
 class DerivativeMethod:
-    def __init__(self, chunk_size, bmpsize):
-        self.bmpsize = bmpsize
-        self.chunk_size = chunk_size # in meters
 
-    def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, randattempts): # hough global is augmentable independent
+    def __init__(self, R, bmpsize_full_dataset, filter=True):
+        self.bmpsize_full_dataset = bmpsize_full_dataset
+        self.R = R # in meters
+        self.filter = filter
 
-        # the difference in chunk size wrt the bmp
-        chunkdiff = self.bmpsize / 1000.0 * self.chunk_size
-        chunks = int(1000.0 / self.chunk_size)
+    def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
 
-        X = common.transform_points_to_bmp(dataset, self.bmpsize)
-        X_result = np.zeros(X.shape)
-        for i in range(randattempts):
-            i = random.random() * (chunks - 1)
-            j = random.random() * (chunks - 1)
+        nbrs, minptidx = common.PointOperations.find_points_within_R(dataset, augmentable, self.R)
 
-            # take chunks
-            Y = X[int(i * chunkdiff):int((i + 1) * chunkdiff), int(j * chunkdiff):int((j + 1) * chunkdiff)]
+        if self.filter:
+            nbrs = common.PointOperations.filter_points_by_angle(nbrs, dataset[minptidx].scan_angle, self.R)
 
-            # circular mask
-            y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
-            mask = x ** 2 + y ** 2 <= (Y.shape[0] / 2) ** 2
-            Y = mask * Y
+        bmpsizenbrs = self.bmpsize_full_dataset / 1000 * self.R
+        Y = common.PointOperations.transform_points_to_bmp(nbrs, bmpsizenbrs)
 
-            # compute best fitting angle
-            minangle = 0
-            minscore = 1000000
-            for x in np.linspace(0, 3.14, 180):
-                score = self.derivative(Y, angle=x, padding=1)
-                print(score)
-                if score < minscore:
-                    minscore = score
-                    minangle = x
+        # circular mask
+        y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
+        mask = x ** 2 + y ** 2 <= (Y.shape[0] / 2) ** 2
+        Y = mask * Y
 
-            self.visualize_at_derivative(Y, angle=minangle, padding=1)
+        # compute best fitting angle
+        minangle = 0
+        minscore = 1000000
+        for x in np.linspace(0, 3.14, 180):
+            score = self.derivative(Y, angle=x, padding=1)
+            print(score)
+            if score < minscore:
+                minscore = score
+                minangle = x
 
-
-
-
-
-
-
-            # BY HOUGH TRANSFORM
-            # common.HoughTransform.visualize_matrix(Y)
-            # accumulator, thetas, rhos = common.HoughTransform.hough_line(Y)
-            # Y = common.HoughTransform.insert_resulting_lines(Y, accumulator, rhos, thetas)
-
-
-
-
-
-
-
-            X_result[int(i * chunkdiff):int((i + 1) * chunkdiff), int(j * chunkdiff):int((j + 1) * chunkdiff)] = Y
-        common.HoughTransform.visualize_matrix(X_result)
+        self.visualize_at_derivative(Y, angle=minangle, padding=1)
 
     def derivative(self, Y, angle, padding):
         Y_trans = self.rotate_matrix(Y, angle)
@@ -70,7 +47,7 @@ class DerivativeMethod:
 
     def get_line(self, angle):
         point = [0, 1]
-        point_rotated = HoughGlobal.rotate_origin_only(point, minangle)
+        point_rotated = DerivativeMethod.rotate_origin_only(point, angle)
         return point_rotated
 
     def visualize_at_derivative(self, Y, angle, padding):

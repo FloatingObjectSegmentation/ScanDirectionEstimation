@@ -103,7 +103,26 @@ class LidarDatasetNormXYZRGBAngle:
         fname = os.path.basename(serialized_filename)
         return fname.replace('_k_k_', '/').replace('___', ':')
 
+class PointSet:
 
+    def __init__(self, points): # should be list(LidarPointXYZRGBAngle)
+        self.minx, self.miny, self.maxx, self.maxy, self.points = self.normalize_points(points)
+
+    def normalize_points(self, points):
+        minx, miny = 10000000000000, 100000000000
+        maxx, maxy = 0, 0
+
+        for i in range(len(points)):
+            if points[i].X < minx: minx = points[i].X
+            if points[i].Y < miny: miny = points[i].Y
+            if points[i].X > maxx: maxx = points[i].X
+            if points[i].Y > maxy: maxy = points[i].Y
+
+        for i in range(len(points)):
+            points[i].X -= minx
+            points[i].Y -= miny
+
+        return minx, miny, maxx, maxy, points
 
 
 ## HOUGH TRANSFORM WITH HELPER METHODS
@@ -179,6 +198,75 @@ class HoughTransform:
                     pass
         return Y
 
+class PointOperations:
+
+    @staticmethod
+    def find_points_within_R(dataset: LidarDatasetNormXYZRGBAngle, augmentable: Augmentable, R):
+        result = []
+
+        aug = [augmentable.location[0] - dataset.minx, augmentable.location[1] - dataset.miny]
+
+        minptidx, minptval = 0, 10000000000
+        for idx, pt in enumerate(dataset):
+            dist = np.linalg.norm(np.array(aug) - np.array([pt.X, pt.Y]))
+            if dist > R:
+                result.append(pt)
+            if dist < minptval:
+                minptidx = idx
+                minptval = dist
+        return result, minptidx
+
+    @staticmethod
+    def filter_points_by_angle(nbrlist: list([LidarPointXYZRGBAngle]), scan_angle, R):
+        # compute translation between R taken and scan angle we need to take
+        distance_per_scan_degree = 2 * math.tan(30) * 1000 / 60
+        degs = R / distance_per_scan_degree
+        filtered_nbrs = []
+        for nbr in nbrlist:
+            if nbr.scan_angle >= scan_angle - degs / 2 and nbr.scan_angle <= scan_angle + degs / 2:
+                filtered_nbrs.append(nbr)
+        return filtered_nbrs
+
+    @staticmethod
+    def transform_dataset_to_bmp(dataset: LidarDatasetNormXYZRGBAngle, bmpsize, do_pickle=True):
+
+        picklepath = tempfolder + "\\" + dataset.name + ".txt" + str(bmpsize) + "_" + str(bmpsize) + ".bin"
+
+        if do_pickle and os.path.isfile(picklepath):
+            return pickle.load(open(picklepath, 'rb'))
+
+        # fill to bmp
+        X = np.zeros((bmpsize, bmpsize))
+        for i in range(len(dataset.points)):
+            try:
+                x = (float(bmpsize) / 1000.0) * dataset.points[i].X
+                y = (float(bmpsize) / 1000.0) * dataset.points[i].Y
+                X[int(x), int(y)] = 1
+            except:
+                pass
+
+        if do_pickle:
+            pickle.dump(X, open(picklepath, 'wb'))
+
+        return X
+
+    @staticmethod
+    def transform_points_to_bmp(points: PointSet, bmpsize):
+
+        # fill to bmp
+        X = np.zeros((bmpsize, bmpsize))
+        for i in range(len(points.points)):
+            try:
+                x = (float(bmpsize) / (points.maxx - points.minx)) * points.points[i].X
+                y = (float(bmpsize) / (points.maxy - points.miny)) * points.points[i].Y
+                X[int(x), int(y)] = 1
+            except:
+                pass
+        return X
+
+
+
+
 
 def load_points(lasfile, width, height, do_pickle=True):
 
@@ -223,29 +311,6 @@ def load_points(lasfile, width, height, do_pickle=True):
         pickle.dump((X, minx, miny), open(filename, 'wb'))
 
     return X, minx, miny
-
-
-def transform_points_to_bmp(dataset: LidarDatasetNormXYZRGBAngle, bmpsize, do_pickle=True):
-
-    picklepath = tempfolder + "\\" + dataset.name + ".txt" + str(bmpsize) + "_" + str(bmpsize) + ".bin"
-
-    if do_pickle and os.path.isfile(picklepath):
-        return pickle.load(open(picklepath, 'rb'))
-
-    # fill to bmp
-    X = np.zeros((bmpsize, bmpsize))
-    for i in range(len(dataset.points)):
-        try:
-            x = (float(bmpsize) / 1000.0) * dataset.points[i].X
-            y = (float(bmpsize) / 1000.0) * dataset.points[i].Y
-            X[int(x), int(y)] = 1
-        except:
-            pass
-
-    if do_pickle:
-        pickle.dump(X, open(picklepath, 'wb'))
-
-    return X
 
 def get_dataset_names(lidar_folder):
     files = [lidar_folder + '\\' + f for f in os.listdir(lidar_folder)]
