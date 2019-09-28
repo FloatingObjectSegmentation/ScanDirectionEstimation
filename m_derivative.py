@@ -13,11 +13,14 @@ class DerivativeMethod:
 
     def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
 
+        print('finding points within R')
         nbrs, minptidx = common.PointOperations.find_points_within_R(dataset, augmentable, self.R)
 
+        print('perform filtering')
         if self.filter:
             nbrs = common.PointOperations.filter_points_by_angle(nbrs, dataset[minptidx].scan_angle, self.R)
 
+        print('to bmp')
         bmpsizenbrs = self.bmpsize_full_dataset / 1000 * self.R
         Y = common.PointOperations.transform_points_to_bmp(nbrs, bmpsizenbrs)
 
@@ -26,6 +29,7 @@ class DerivativeMethod:
         mask = x ** 2 + y ** 2 <= (Y.shape[0] / 2) ** 2
         Y = mask * Y
 
+        print('compute fit')
         # compute best fitting angle
         minangle = 0
         minscore = 1000000
@@ -102,7 +106,7 @@ class DerivativeMethod:
 
         A_trans = np.zeros(A.shape)
         for i in range(len(pos)):
-            x, y = HoughGlobal.rotate_origin_only((pos[i][0], pos[i][1]), radians)
+            x, y = DerivativeMethod.rotate_origin_only((pos[i][0], pos[i][1]), radians)
             x, y = x + A.shape[0] / 2, y + A.shape[1] / 2
             A_trans[int(x),int(y)] = 1
 

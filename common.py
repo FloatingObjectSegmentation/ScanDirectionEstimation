@@ -9,7 +9,13 @@ import time
 
 tempfolder = 'E:\\workspaces\\LIDAR_WORKSPACE\\temp'
 
-## AUGMENTABLE DEFINITION
+############################################################################################################
+############################################################################################################
+############################################################################################################
+# DATA HOLDERS
+############################################################################################################
+############################################################################################################
+############################################################################################################
 class Augmentable:
 
     def __init__(self, idx, location, scale, tp, airplane_pos, dff, directions):
@@ -36,6 +42,19 @@ class Augmentable:
         distance_from_floor = float(parts[5])
         directions = [Augmentable.vecStringToFloatLst(part) for part in parts[6:]]
         return Augmentable(idx, location, scale, type, airplane_pos, distance_from_floor, directions)
+
+class AugmentableSet:
+
+    def __init__(self, folder, name):
+        self.name = name
+        self.folder = folder
+        self.path = self.folder + '//' + self.name + 'augmentation_result_transformed_airplane_heights.txt'
+        self.augmentables = []
+        lines = open(self.path, 'r').readlines()
+        for line in lines:
+            aug = Augmentable.fromLine(line)
+            self.augmentables.append(aug)
+
 
 
 ## LIDAR DEFINITION
@@ -66,6 +85,7 @@ class LidarDatasetNormXYZRGBAngle:
 
             self.points = [LidarPointXYZRGBAngle(line[0].rstrip() + ' ' + line[1].rstrip()) for line in zip(lines, lines_scan_angles)]
             self.minx, self.miny, self.points = self.normalize_points(self.points)
+
             if do_pickle:
                 self.store_pickled()
 
@@ -207,7 +227,7 @@ class PointOperations:
         aug = [augmentable.location[0] - dataset.minx, augmentable.location[1] - dataset.miny]
 
         minptidx, minptval = 0, 10000000000
-        for idx, pt in enumerate(dataset):
+        for idx, pt in enumerate(dataset.points):
             dist = np.linalg.norm(np.array(aug) - np.array([pt.X, pt.Y]))
             if dist > R:
                 result.append(pt)

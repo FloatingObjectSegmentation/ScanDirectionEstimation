@@ -4,12 +4,14 @@ import pickle
 import os.path
 import math
 import random
-import m_hough_global
 import time
 
+import m_hough_global
+import m_derivative
 import common
 
 # config
+testone = False
 augmentable_folder = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables'
 lidar_folder = 'E:/workspaces/LIDAR_WORKSPACE/lidar'
 
@@ -22,19 +24,31 @@ def read_lidar(filepath):
     lines = open(filepath, 'r').readlines()
     return [common.LidarPointXYZRGBAngle(line) for line in lines]
 
+def testonemethod():
+    # load all lidar file names
+    names = common.get_dataset_names(lidar_folder)
+    for name in names:
+        name = '391_38'
+        method = m_hough_global.HoughGlobal(20, 3500)
+        start = time.time()
+        dataset = common.LidarDatasetNormXYZRGBAngle(lidar_folder, name)
+        end = time.time()
+        method.run(dataset, 50)
+        print(end - start)
 
-# load all lidar file names
+if testone:
+    testonemethod()
+
 names = common.get_dataset_names(lidar_folder)
 for name in names:
+
     name = '391_38'
-    method = m_hough_global.HoughGlobal(20, 3500)
-    start = time.time()
     dataset = common.LidarDatasetNormXYZRGBAngle(lidar_folder, name)
-    end = time.time()
-    method.run(dataset, 50)
-    print(end - start)
+    augset = common.AugmentableSet(augmentable_folder, name)
 
-
+    for aug in augset.augmentables:
+        method = m_derivative.DerivativeMethod(R=30, bmpsize_full_dataset=4000, filter=True)
+        method.run(dataset=dataset, augmentable=aug)
 
 
 
