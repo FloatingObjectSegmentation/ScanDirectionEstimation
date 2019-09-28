@@ -11,14 +11,20 @@ class DerivativeMethod:
         self.R = R # in meters
         self.filter = filter
 
+    # not that dataset is already in normalized space and augmentable in in original point cloud space!
     def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
 
         print('finding points within R')
-        nbrs, minptidx = common.PointOperations.find_points_within_R(dataset, augmentable, self.R)
+        aug_loc = (augmentable.location[0] - dataset.minx, augmentable.location[1] - dataset.miny)
+        nbr_indices = dataset.find_neighbours(aug_loc, R=self.R)
+        nbrs = [dataset.points[i] for i in nbr_indices]
+        minptidx = dataset.find_closest_neighbour(aug_loc)
+
+        #nbrs, minptidx = common.PointOperations.find_points_within_R(dataset, augmentable, self.R)
 
         print('perform filtering')
         if self.filter:
-            nbrs = common.PointOperations.filter_points_by_angle(nbrs, dataset[minptidx].scan_angle, self.R)
+            nbrs = common.PointOperations.filter_points_by_angle(nbrs, dataset.points[minptidx].scan_angle, self.R)
 
         print('to bmp')
         bmpsizenbrs = self.bmpsize_full_dataset / 1000 * self.R
