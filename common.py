@@ -275,33 +275,6 @@ class HoughTransform:
                 pixels[i,j] = (red, green, blue)
         img.show()
 
-    @staticmethod
-    def visualize_accumulator(accumulator):
-        img = Image.new('RGB', (accumulator.shape[0], accumulator.shape[1]), 'white')
-        pixels = img.load()
-        for i in range(accumulator.shape[0]):
-            for j in range(accumulator.shape[1]):
-                pixels[i, j] = (int(accumulator[i, j] / np.max(accumulator) * 255), 0, 0)
-        img.show()
-
-    @staticmethod
-    def insert_resulting_lines(Y, accumulator, rhos, thetas):
-
-        idx0 = np.argpartition(accumulator.ravel(), -3)[-3:]
-        idxs = idx0[accumulator.ravel()[idx0].argsort()][::-1]
-        for idx in idxs:
-            rho = rhos[int(idx / accumulator.shape[1])]
-            theta = thetas[idx % accumulator.shape[1]]
-
-            for i in range(Y.shape[0]):
-                try:
-                    x = i
-                    y = rho / math.sin(theta) - x * math.cos(theta) / math.sin(theta)
-                    Y[int(y), int(x)] = 2
-                except:
-                    pass
-        return Y
-
 class PointOperations:
 
     @staticmethod

@@ -7,128 +7,86 @@ import random
 
 class HoughMethod:
 
-    def __init__(self, chunk_size, bmpsize):
-        self.bmpsize = bmpsize
-        self.chunk_size = chunk_size # in meters
+    def __init__(self):
+        pass
 
-    def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, randattempts): # hough global is augmentable independent
+    def scan_direction_hough(self, S_whole, angle, bmpsize):
+        pass
+        # filter by neighboring scan angles S_whole
+        minx, maxx, miny, maxy = S_whole.minx, S_whole.maxx, S_whole.miny, S_whole.maxy
+        S_whole = common.PointOperations.filter_points_by_angle_range(S_whole, angle - 1, angle + 1)
+        Y = common.Visualization.transform_points_to_bmp_with_bounds(S_whole, bmpsize, minx, maxx, miny, maxy)
+        Y = self.circular_mask(Y)
 
-        # the difference in chunk size wrt the bmp
-        chunkdiff = self.bmpsize / 1000.0 * self.chunk_size
-        chunks = int(1000.0 / self.chunk_size)
+        accumulator, thetas, rhos = HoughMethod.hough_line(Y)
+        HoughMethod.visualize_accumulator(accumulator)
+        Y = HoughMethod.insert_resulting_lines(Y, accumulator, rhos, thetas)
+        common.HoughTransform.visualize_matrix(Y)
 
-        X = common.transform_points_to_bmp(dataset, self.bmpsize)
-        X_result = np.zeros(X.shape)
-        for i in range(randattempts):
-            i = random.random() * (chunks - 1)
-            j = random.random() * (chunks - 1)
-
-            # take chunks
-            Y = X[int(i * chunkdiff):int((i + 1) * chunkdiff), int(j * chunkdiff):int((j + 1) * chunkdiff)]
-
-            # circular mask
-            y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
-            mask = x ** 2 + y ** 2 <= (Y.shape[0] / 2) ** 2
-            Y = mask * Y
-
-            # compute best fitting angle
-            minangle = 0
-            minscore = 1000000
-            for x in np.linspace(0, 3.14, 180):
-                score = self.derivative(Y, angle=x, padding=1)
-                print(score)
-                if score < minscore:
-                    minscore = score
-                    minangle = x
-
-            self.visualize_at_derivative(Y, angle=minangle, padding=1)
+        # find actual scan direction
+        return None
 
 
-
-
-
-
-
-            # BY HOUGH TRANSFORM
-            # common.HoughTransform.visualize_matrix(Y)
-            # accumulator, thetas, rhos = common.HoughTransform.hough_line(Y)
-            # Y = common.HoughTransform.insert_resulting_lines(Y, accumulator, rhos, thetas)
-
-
-
-
-
-
-
-            X_result[int(i * chunkdiff):int((i + 1) * chunkdiff), int(j * chunkdiff):int((j + 1) * chunkdiff)] = Y
-        common.HoughTransform.visualize_matrix(X_result)
-
-    def derivative(self, Y, angle, padding):
-        Y_trans = self.rotate_matrix(Y, angle)
-        Y_trans_padded = np.hstack((np.zeros((padding, Y.shape[0])).T, Y_trans[:, :-padding]))
-        deriv = np.abs(Y_trans - Y_trans_padded)
-        score = np.sum(deriv)
-        return score
-
-    def get_line(self, angle):
-        point = [0, 1]
-        point_rotated = HoughMethod.rotate_origin_only(point, minangle)
-        return point_rotated
-
-    def visualize_at_derivative(self, Y, angle, padding):
-
-        G = np.zeros(Y.shape)
-        y = Y.shape[0] / 2
-        xs = np.linspace(Y.shape[0] / 4, 3 * Y.shape[0] / 4, 50)
-
-        for i in range(xs.shape[0]):
-            G[int(y), int(xs[i])] = 1
-        G = self.rotate_matrix(G, angle)
-
-        Y_trans = self.rotate_matrix(Y, angle)
-        Y_trans_padded = np.hstack((np.zeros((padding, Y.shape[0])).T, Y_trans[:, :-padding]))
-        deriv = np.abs(Y_trans - Y_trans_padded)
-
-        #point = [0, 50]
-        #point_rotated = HoughGlobal.rotate_origin_only(point, -angle)
-        #point_rotated = np.array(point_rotated) + 80
-        #xs = np.linspace(0, point_rotated[0], 50)
-        #ys = np.linspace(0, point_rotated[1], 50)
-        #for i in range(ys.shape[0]):
-            #Y[int(xs[i]), int(ys[i])] = 2
-
-
-
-        Y_sides = np.zeros((Y.shape[0], Y.shape[1] * 5))
-        Y_sides[:, :Y.shape[0]] = Y
-        Y_sides[:, Y.shape[0]:2 * Y.shape[0]] = Y_trans
-        Y_sides[:, 2 * Y.shape[0]:3 * Y.shape[0]] = Y_trans_padded
-        Y_sides[:, 3 * Y.shape[0]: 4 * Y.shape[0]] = deriv
-        Y_sides[:, 4 * Y.shape[0]:] = G
-
-        common.HoughTransform.visualize_matrix(Y_sides)
+    def circular_mask(self, Y):
+        y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
+        mask = x ** 2 + y ** 2 <= (Y.shape[0] / 2) ** 2
+        Y = mask * Y
+        return Y
 
     @staticmethod
-    def rotate_origin_only(xy, radians):
-        """Only rotate a point around the origin (0, 0)."""
-        x, y = xy
-        xx = x * math.cos(radians) + y * math.sin(radians)
-        yy = -x * math.sin(radians) + y * math.cos(radians)
+    def hough_line(img):
+        # Rho and Theta ranges
+        thetas = np.deg2rad(np.arange(-90.0, 90.0))
+        width, height = img.shape
+        diag_len = np.ceil(np.sqrt(width * width + height * height))  # max_dist
+        rhos = np.linspace(-diag_len, diag_len, diag_len * 2.0)
 
-        return xx, yy
+        # Cache some reusable values
+        cos_t = np.cos(thetas)
+        sin_t = np.sin(thetas)
+        num_thetas = len(thetas)
 
-    def rotate_matrix(self, A, radians):
+        # Hough accumulator array of theta vs rho
+        accumulator = np.zeros((2 * int(diag_len), num_thetas), dtype=np.uint64)
+        y_idxs, x_idxs = np.nonzero(img)  # (row, col) indexes to edges
 
-        pos = []
-        for i in range(A.shape[0]):
-            for j in range(A.shape[1]):
-                if A[i,j] == 1:
-                    pos.append([ i - A.shape[0] / 2, j - A.shape[1] / 2])
+        # Vote in the hough accumulator
+        for i in range(len(x_idxs)):
+            x = x_idxs[i]
+            y = y_idxs[i]
 
-        A_trans = np.zeros(A.shape)
-        for i in range(len(pos)):
-            x, y = HoughMethod.rotate_origin_only((pos[i][0], pos[i][1]), radians)
-            x, y = x + A.shape[0] / 2, y + A.shape[1] / 2
-            A_trans[int(x),int(y)] = 1
+            if i % 10000 == 0:
+                print(i)
+            for t_idx in range(num_thetas):
+                # Calculate rho. diag_len is added for a positive index
+                rho = round(x * cos_t[t_idx] + y * sin_t[t_idx]) + diag_len
+                accumulator[int(rho), int(t_idx)] += 1
 
-        return A_trans
+        return accumulator, thetas, rhos
+
+    @staticmethod
+    def visualize_accumulator(accumulator):
+        img = Image.new('RGB', (accumulator.shape[0], accumulator.shape[1]), 'white')
+        pixels = img.load()
+        for i in range(accumulator.shape[0]):
+            for j in range(accumulator.shape[1]):
+                pixels[i, j] = (int(accumulator[i, j] / np.max(accumulator) * 255), 0, 0)
+        img.show()
+
+    @staticmethod
+    def insert_resulting_lines(Y, accumulator, rhos, thetas):
+
+        idx0 = np.argpartition(accumulator.ravel(), -3)[-3:]
+        idxs = idx0[accumulator.ravel()[idx0].argsort()][::-1]
+        for idx in idxs:
+            rho = rhos[int(idx / accumulator.shape[1])]
+            theta = thetas[idx % accumulator.shape[1]]
+
+            for i in range(Y.shape[0]):
+                try:
+                    x = i
+                    y = rho / math.sin(theta) - x * math.cos(theta) / math.sin(theta)
+                    Y[int(y), int(x)] = 2
+                except:
+                    pass
+        return Y

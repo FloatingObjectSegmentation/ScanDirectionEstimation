@@ -2,6 +2,7 @@ import numpy as np
 import common
 import math
 import m_derivative
+import m_hough
 
 from PIL import Image
 import random
@@ -119,9 +120,10 @@ class AirplanePropertiesEstimation:
         airplane_ortho_direction = [[0,0], [scan_direction[0], scan_direction[1]]]
 
         # find scan direction
-        scan_direction = m_derivative.DerivativeMethod().scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
+        #scan_direction_derivative = m_derivative.DerivativeMethod().scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
+        scan_direction_hough = m_hough.HoughMethod().scan_direction_hough(S_whole, minptalpha, bmpsizenbrs)
 
-        return airplane_position, airplane_ortho_direction, scan_direction
+        return airplane_position, airplane_ortho_direction #scan_direction_derivative, scan_direction_hough
 
 
     def average_points_in_clusters(self, points: common.PointSet):
