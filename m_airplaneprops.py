@@ -120,10 +120,10 @@ class AirplanePropertiesEstimation:
         airplane_ortho_direction = [[0,0], [scan_direction[0], scan_direction[1]]]
 
         # find scan direction
-        #scan_direction_derivative = m_derivative.DerivativeMethod().scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
+        scan_direction_derivative = m_derivative.DerivativeMethod().scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
         scan_direction_hough = m_hough.HoughMethod().scan_direction_hough(S_whole, minptalpha, bmpsizenbrs)
 
-        return airplane_position, airplane_ortho_direction #scan_direction_derivative, scan_direction_hough
+        return airplane_position, airplane_ortho_direction, scan_direction_derivative, scan_direction_hough
 
 
     def average_points_in_clusters(self, points: common.PointSet):
@@ -165,6 +165,7 @@ class AirplanePropertiesEstimation:
 
     @staticmethod
     def length_of_one_degree(angle, height):
+        angle = math.abs(angle)
         alpha1 = (angle + 1) * math.pi / 180.0
         alpha2 = angle * math.pi / 180.0
         dist = (height * math.tan(alpha1)) - height * math.tan(alpha2)
@@ -174,6 +175,7 @@ class AirplanePropertiesEstimation:
     def height_at_degree(angle, dist):
         # we know that X * tg(alpha) = y, y and alpha are knowns
         # airplane height = X
+        angle = math.abs(angle)
         alpha1 = (angle + 1) * math.pi / 180.0
         alpha2 = angle * math.pi / 180.0
         height = dist / (math.tan(alpha1) - math.tan(alpha2))
