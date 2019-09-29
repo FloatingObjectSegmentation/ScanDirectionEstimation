@@ -48,14 +48,15 @@ class AirplanePropertiesEstimation:
 
             minptalpha = p.scan_angle
 
-            # compute new S_whole around it# compute params
+            # compute new S_whole around it and params (because neighboring degree to alpha-1 may not be contained in old S_whole)
             R = 2.5 * AirplanePropertiesEstimation.length_of_one_degree(minptalpha, 1000.0) / 2
             bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
-
-
-            # S_whole = assume x = 1000, take 2.5 degrees of range for it, divide by 2 because it's polmer!
             nbr_indices = dataset.find_neighbours(aug_loc, R=R)
             S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
+
+
+        # find scan direction
+        scan_direction = self.scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
 
 
         # S_small = from S_big take only the points that are the same degree
@@ -118,21 +119,35 @@ class AirplanePropertiesEstimation:
         A = [minpt.X, minpt.Y, minpt.Z]
         airplane_position = A + (x + xtana)
 
+        airplane_direction = [[0,0], [scan_direction[0], scan_direction[1]]]
 
 
-        airplane_directions = [[0,0], [scan_direction[0], scan_direction[1]]]
-        return airplane_position, airplane_directions
+        return airplane_position, airplane_direction, scan_direction
+    
 
-        ## MAYBE DO LAST / EVENTUALLY
-        # scan direction = Fit by derivative method or hough transform to get scan direction
-        # bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)  # size of 2.5 degs
-        # Y = common.PointOperations.transform_points_to_bmp_with_bounds(S_small, bmpsizenbrs, minx=S_whole.minx,
-        #                                                                maxx=S_whole.maxx, miny=S_whole.miny,
-        #                                                                maxy=S_whole.maxy)
-        # # Y = self.circular_mask(Y)
-        # common.HoughTransform.visualize_matrix(Y)
-        # minangle = self.compute_bestangle(Y)
-        # self.visualize_at_derivative(Y, angle=minangle, padding=1)
+    def scan_direction_derivative(self, S_whole, angle, bmpsize):
+        pass
+        # filter by neighboring scan angles S_whole
+        minx, maxx, miny, maxy = S_whole.minx, S_whole.maxx, S_whole.miny, S_whole.maxy
+        S_whole = common.PointOperations.filter_points_by_angle_range(S_whole, angle - 1, angle + 1)
+        Y = common.Visualization.transform_points_to_bmp_with_bounds(S_whole, bmpsize, minx, maxx, miny, maxy)
+        Y = self.circular_mask(Y)
+        bestangle = self.compute_bestangle(Y)
+        self.visualize_at_derivative(Y, angle=bestangle, padding=1)
+
+        G = np.zeros(Y.shape)
+        y = Y.shape[0] / 2
+        xs = np.linspace(Y.shape[0] / 4, 3 * Y.shape[0] / 4, 50)
+        for i in range(xs.shape[0]):
+            G[int(y), int(xs[i])] = 1
+        G = self.rotate_matrix(G, angle)
+        xs, ys = np.where(G == 1)
+
+        scan_direction = [[[xs[0], ys[0]], [xs[len(xs) - 1], ys[len(ys) - 1]]]]
+        return scan_direction
+
+
+
 
     def compute_bestangle(self, Y):
         minangle = 0
@@ -213,26 +228,32 @@ class AirplanePropertiesEstimation:
             G[int(y), int(xs[i])] = 1
         G = self.rotate_matrix(G, angle)
 
+        # take all points where G = 1
+        xs, ys = np.where(G == 1)
+        # make array of points from it
+        points = [[x, y] for x, y in zip(list(xs), list(ys))]
+        # again project to bmp
+        D = common.Visualization.transform_rawpoints_to_bmp_with_bounds(points, Y.shape[0], 0, Y.shape[0], 0, Y.shape[0])
+
+
         Y_trans = self.rotate_matrix(Y, angle)
         Y_trans_padded = np.hstack((np.zeros((padding, Y.shape[0])).T, Y_trans[:, :-padding]))
         deriv = np.abs(Y_trans - Y_trans_padded)
-
-        #point = [0, 50]
-        #point_rotated = HoughGlobal.rotate_origin_only(point, -angle)
-        #point_rotated = np.array(point_rotated) + 80
-        #xs = np.linspace(0, point_rotated[0], 50)
-        #ys = np.linspace(0, point_rotated[1], 50)
-        #for i in range(ys.shape[0]):
-            #Y[int(xs[i]), int(ys[i])] = 2
+        tmp = deriv[5:-5,5:-5]
+        tmp = self.circular_mask(tmp)
+        deriv = np.zeros(Y.shape)
+        deriv[5:-5,5:-5] = tmp
 
 
 
-        Y_sides = np.zeros((Y.shape[0], Y.shape[1] * 5))
+
+        Y_sides = np.zeros((Y.shape[0], Y.shape[1] * 6))
         Y_sides[:, :Y.shape[0]] = Y
         Y_sides[:, Y.shape[0]:2 * Y.shape[0]] = Y_trans
         Y_sides[:, 2 * Y.shape[0]:3 * Y.shape[0]] = Y_trans_padded
         Y_sides[:, 3 * Y.shape[0]: 4 * Y.shape[0]] = deriv
-        Y_sides[:, 4 * Y.shape[0]:] = G
+        Y_sides[:, 4 * Y.shape[0]: 5 * Y.shape[0]] = G
+        Y_sides[:, 5 * Y.shape[0]:] = D
 
         common.HoughTransform.visualize_matrix(Y_sides)
 
