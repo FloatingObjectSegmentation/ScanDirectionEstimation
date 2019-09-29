@@ -5,7 +5,7 @@ from PIL import Image
 import random
 
 
-class HoughGlobal:
+class HoughMethod:
 
     def __init__(self, chunk_size, bmpsize):
         self.bmpsize = bmpsize
@@ -72,7 +72,7 @@ class HoughGlobal:
 
     def get_line(self, angle):
         point = [0, 1]
-        point_rotated = HoughGlobal.rotate_origin_only(point, minangle)
+        point_rotated = HoughMethod.rotate_origin_only(point, minangle)
         return point_rotated
 
     def visualize_at_derivative(self, Y, angle, padding):
@@ -127,7 +127,7 @@ class HoughGlobal:
 
         A_trans = np.zeros(A.shape)
         for i in range(len(pos)):
-            x, y = HoughGlobal.rotate_origin_only((pos[i][0], pos[i][1]), radians)
+            x, y = HoughMethod.rotate_origin_only((pos[i][0], pos[i][1]), radians)
             x, y = x + A.shape[0] / 2, y + A.shape[1] / 2
             A_trans[int(x),int(y)] = 1
 

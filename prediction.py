@@ -6,7 +6,7 @@ import math
 import random
 import time
 
-import m_hough_global
+import m_hough
 import m_airplaneprops
 import common
 
@@ -29,7 +29,7 @@ def testonemethod():
     names = common.get_dataset_names(lidar_folder)
     for name in names:
         name = '391_38'
-        method = m_hough_global.HoughGlobal(20, 3500)
+        method = m_hough.HoughMethod(20, 3500)
         start = time.time()
         dataset = common.LidarDatasetNormXYZRGBAngle(lidar_folder, name)
         end = time.time()
