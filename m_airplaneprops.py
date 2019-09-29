@@ -37,10 +37,25 @@ class AirplanePropertiesEstimation:
 
         # Find out whether both neighboring degrees are present
         angles = set([p.scan_angle for p in S_whole.points])
-        isok = minptalpha - 1 in angles and minptalpha + 1 in angles
-        if not isok:
-            pass # determine what to do now
+        hasbothangles = minptalpha - 1 in angles and minptalpha + 1 in angles
+        if not hasbothangles:
+            # select new point from the neighboring angle
+            selected = 0
+            for p in S_whole.points:
+                if p.scan_angle == minptalpha - 1 or p.scan_angle == minptalpha + 1:
+                    selected = p
+                    break
 
+            minptalpha = p.scan_angle
+
+            # compute new S_whole around it# compute params
+            R = 2.5 * AirplanePropertiesEstimation.length_of_one_degree(minptalpha, 1000.0) / 2
+            bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
+
+
+            # S_whole = assume x = 1000, take 2.5 degrees of range for it, divide by 2 because it's polmer!
+            nbr_indices = dataset.find_neighbours(aug_loc, R=R)
+            S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
 
 
         # S_small = from S_big take only the points that are the same degree
@@ -68,7 +83,7 @@ class AirplanePropertiesEstimation:
 
 
         # Interpolate the true scan angle
-        aug = np.array([aug_loc[0], aug_loc[1]])
+        aug = np.array([minpt.X, minpt.Y]) # because we're working with minpt not with aug directly!
         p1 = 0
         p2 = 0
         for i in range(1, 50):
@@ -100,7 +115,7 @@ class AirplanePropertiesEstimation:
         x = np.array([0,0,height])
         xtana = scan_direction * height * math.tan(a_aug)
         xtana = np.array([xtana[0], xtana[1], 0])
-        A = [augmentable.location[0], augmentable.location[1], augmentable.location[2]]
+        A = [minpt.X, minpt.Y, minpt.Z]
         airplane_position = A + (x + xtana)
 
 
