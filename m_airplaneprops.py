@@ -54,11 +54,6 @@ class AirplanePropertiesEstimation:
             nbr_indices = dataset.find_neighbours(aug_loc, R=R)
             S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
 
-
-        # find scan direction
-        scan_direction = self.scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
-
-
         # S_small = from S_big take only the points that are the same degree
         S_small = common.PointOperations.filter_points_by_angle(S_whole, minptalpha)
 
@@ -119,11 +114,13 @@ class AirplanePropertiesEstimation:
         A = [minpt.X, minpt.Y, minpt.Z]
         airplane_position = A + (x + xtana)
 
-        airplane_direction = [[0,0], [scan_direction[0], scan_direction[1]]]
+        airplane_ortho_direction = [[0,0], [scan_direction[0], scan_direction[1]]]
 
+        # find scan direction
+        scan_direction = self.scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
 
-        return airplane_position, airplane_direction, scan_direction
-    
+        return airplane_position, airplane_ortho_direction, scan_direction
+
 
     def scan_direction_derivative(self, S_whole, angle, bmpsize):
         pass
