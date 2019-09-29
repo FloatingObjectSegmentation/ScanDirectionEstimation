@@ -23,8 +23,10 @@ class HoughMethod:
         Y = HoughMethod.insert_resulting_lines(Y, accumulator, rhos, thetas)
         common.HoughTransform.visualize_matrix(Y)
 
-        # find actual scan direction
-        return None
+        xs, ys = np.where(Y == 2)
+        scan_direction = [[[xs[0], ys[0]], [xs[len(xs) - 1], ys[len(ys) - 1]]]]
+
+        return scan_direction
 
 
     def circular_mask(self, Y):
@@ -76,7 +78,7 @@ class HoughMethod:
     @staticmethod
     def insert_resulting_lines(Y, accumulator, rhos, thetas):
 
-        idx0 = np.argpartition(accumulator.ravel(), -3)[-3:]
+        idx0 = np.argpartition(accumulator.ravel(), -1)[-1:]
         idxs = idx0[accumulator.ravel()[idx0].argsort()][::-1]
         for idx in idxs:
             rho = rhos[int(idx / accumulator.shape[1])]
