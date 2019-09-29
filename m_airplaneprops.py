@@ -35,6 +35,13 @@ class AirplanePropertiesEstimation:
         S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
 
 
+        # Find out whether both neighboring degrees are present
+        angles = set([p.scan_angle for p in S_whole.points])
+        isok = minptalpha - 1 in angles and minptalpha + 1 in angles
+        if not isok:
+            pass # determine what to do now
+
+
 
         # S_small = from S_big take only the points that are the same degree
         S_small = common.PointOperations.filter_points_by_angle(S_whole, minptalpha)
