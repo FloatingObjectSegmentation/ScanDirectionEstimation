@@ -72,6 +72,8 @@ class LidarPointXYZRGBAngle:
         self.scan_angle = int(parts[6])
         self.origidx = 0
 
+
+
 class LidarDatasetNormXYZRGBAngle:
 
     def __init__(self, folder, name, do_pickle=True):
@@ -336,6 +338,19 @@ class PointOperations:
                 filtered_nbrs.append(nbr)
         return PointSet(filtered_nbrs)
 
+class Visualization:
+
+    @staticmethod
+    def visualize(points:PointSet, minx, miny, maxx, maxy, bmpsize):
+        G = Visualization.transform_points_to_bmp_with_bounds(points, bmpsize, minx, maxx, miny, maxy)
+        HoughTransform.visualize_matrix(G)
+
+    @staticmethod
+    def visualize_points(points, minx, miny, maxx, maxy, bmpsize):
+        G = Visualization.transform_rawpoints_to_bmp_with_bounds(points, bmpsize, minx, maxx, miny, maxy)
+        HoughTransform.visualize_matrix(G)
+
+
     @staticmethod
     def transform_dataset_to_scananglebmp(dataset: LidarDatasetNormXYZRGBAngle, bmpsize):
 
@@ -380,14 +395,40 @@ class PointOperations:
         X = np.zeros((bmpsize, bmpsize))
         for i in range(len(points.points)):
             try:
-                x = (float(bmpsize) / (points.maxx - points.minx)) * points.points[i].X
-                y = (float(bmpsize) / (points.maxy - points.miny)) * points.points[i].Y
+                x = (float(bmpsize) / (points.maxx - points.minx)) * (points.points[i].X - points.minx)
+                y = (float(bmpsize) / (points.maxy - points.miny)) * (points.points[i].Y - points.miny)
                 X[int(x), int(y)] = 1
             except:
                 pass
         return X
 
+    @staticmethod
+    def transform_points_to_bmp_with_bounds(points: PointSet, bmpsize: int, minx, maxx, miny, maxy):
 
+        # fill to bmp
+        X = np.zeros((bmpsize, bmpsize))
+        for i in range(len(points.points)):
+            try:
+                x = (float(bmpsize) / (maxx - minx)) * (points.points[i].X - minx)
+                y = (float(bmpsize) / (maxy - miny)) * (points.points[i].Y - miny)
+                X[int(x), int(y)] = 1
+            except:
+                pass
+        return X
+
+    @staticmethod
+    def transform_rawpoints_to_bmp_with_bounds(points, bmpsize: int, minx, maxx, miny, maxy): # points = (x,y)
+
+        # fill to bmp
+        X = np.zeros((bmpsize, bmpsize))
+        for i in range(len(points)):
+            try:
+                x = (float(bmpsize) / (maxx - minx)) * (points[i][0] - minx)
+                y = (float(bmpsize) / (maxy - miny)) * (points[i][1] - miny)
+                X[int(x), int(y)] = 1
+            except:
+                pass
+        return X
 
 
 

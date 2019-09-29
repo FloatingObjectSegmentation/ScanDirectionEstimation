@@ -14,50 +14,103 @@ class DerivativeMethod:
     # not that dataset is already in normalized space and augmentable in in original point cloud space!
     def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
 
+        ########################
+        ## PREP DATA
+        ########################
+
         # find alpha of nearest neighbour
         aug_loc = (augmentable.location[0] - dataset.minx, augmentable.location[1] - dataset.miny)
         minptidx = dataset.find_closest_neighbour(aug_loc)
         minpt = dataset.points[minptidx]
         minptalpha = minpt.scan_angle
 
-        # S_whole = assume x = 1000, take 2.5 degrees of range for it, divide by 2 because it's polmer!
+
+        # compute params
         R = 2.5 * DerivativeMethod.length_of_one_degree(minptalpha, 1000.0) / 2
         bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
 
+
+        # S_whole = assume x = 1000, take 2.5 degrees of range for it, divide by 2 because it's polmer!
         nbr_indices = dataset.find_neighbours(aug_loc, R=R)
         S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
+
+
 
         # S_small = from S_big take only the points that are the same degree
         S_small = common.PointOperations.filter_points_by_angle(S_whole, minptalpha)
 
-        # scan direction = Fit by derivative method or hough transform to get scan direction
-        bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R) # size of 2.5 degs
-        Y = common.PointOperations.transform_points_to_bmp(S_small, bmpsizenbrs)
-        Y = self.circular_mask(Y)
-        minangle = self.compute_bestangle(Y)
-        self.visualize_at_derivative(Y, angle=minangle, padding=1)
+        ########################
+        ## FROM DEGREE RANGE ESTIMATE HEIGHT
+        ########################
 
-        # FROM DEGREE RANGE ESTIMATE HEIGHT
         # find nearest points with the neighboring angle
         angle_nbrs = self.nearest_angle_neighbors(dataset=dataset, S_small=S_small)
-        G = common.PointOperations.transform_points_to_bmp(angle_nbrs, bmpsizenbrs)
-        common.HoughTransform.visualize_matrix(G)
+        common.Visualization.visualize(angle_nbrs, S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
+
 
         # average points
-        p1, p2 = self.average_points_in_clusters(points=angle_nbrs)
+        p_min, p_max = self.average_points_in_clusters(points=angle_nbrs)
+        common.Visualization.visualize_points([p_min, p_max], S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
+
 
         # average distance is the distance of one degree - scan_direction and height are now computable
-        dist = math.sqrt(((p1[0] - p2[0]) ** 2) + ((p1[1] - p2[1]) ** 2))
-        scan_direction = (p1[0] - p2[0], p1[1] - p2[1])
-        height = self.height_at_degree(angle=minangle, dist=dist)
+        dist = math.sqrt(((p_max[0] - p_min[0]) ** 2) + ((p_max[1] - p_min[1]) ** 2))
+        scan_direction = np.array([p_max[0] - p_min[0], p_max[1] - p_min[1]])
+        scan_direction = scan_direction / np.linalg.norm(scan_direction)
+        height = self.height_at_degree(angle=minptalpha, dist=dist)
+
+
 
         # Interpolate the true scan angle
-            # take scan direction
-            # in this direction find alpha - 1 and alpha + 1 points
-            # linear interpolation to find out true value of angle
+        aug = np.array([aug_loc[0], aug_loc[1]])
+        p1 = 0
+        p2 = 0
+        for i in range(1, 50):
+            p = aug + i * scan_direction
+            nbridxs = dataset.find_neighbours(p, R=1.0)
+            for i in nbridxs:
+                if (dataset.points[i].scan_angle == minptalpha + 1):
+                    p2 = p
+                    break
+        for i in range(1, 50):
+            p = aug - i * scan_direction
+            nbridxs = dataset.find_neighbours(p, R=1.0)
+            for i in nbridxs:
+                if (dataset.points[i].scan_angle == minptalpha - 1):
+                    p1 = p
+                    break
+        a1 = minptalpha
+        a2 = minptalpha + 1
 
-        # airplane way
-            #@at mag at the end
+        x_m = 0
+        x_n = np.linalg.norm(p1 - p2)
+        x_A = np.linalg.norm(p2 - aug)
+        a_m = a1
+        a_n = a2
+        a_aug = a_m + (x_A - x_m) * (a_n - a_m) / (x_n - x_m)
+
+
+        x = np.array([0,0,height])
+        xtana = scan_direction * height * math.tan(a_aug)
+        xtana = np.array([xtana[0], xtana[1], 0])
+        A = [augmentable.location[0], augmentable.location[1], augmentable.location[2]]
+        airplane_position = A + (x + xtana)
+
+        airplane_directions = [[0,0], [scan_direction[0], scan_direction[1]]]
+
+
+        return airplane_position, airplane_directions
+
+        ## MAYBE DO LAST / EVENTUALLY
+        # scan direction = Fit by derivative method or hough transform to get scan direction
+        # bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)  # size of 2.5 degs
+        # Y = common.PointOperations.transform_points_to_bmp_with_bounds(S_small, bmpsizenbrs, minx=S_whole.minx,
+        #                                                                maxx=S_whole.maxx, miny=S_whole.miny,
+        #                                                                maxy=S_whole.maxy)
+        # # Y = self.circular_mask(Y)
+        # common.HoughTransform.visualize_matrix(Y)
+        # minangle = self.compute_bestangle(Y)
+        # self.visualize_at_derivative(Y, angle=minangle, padding=1)
 
     def compute_bestangle(self, Y):
         minangle = 0
@@ -71,8 +124,11 @@ class DerivativeMethod:
         return minangle
 
     def average_points_in_clusters(self, points: common.PointSet):
+        # will be in ascending order
+        # p_max is at higher angle, p_min is at smaller angle
 
         angles = list(set([a.scan_angle for a in points.points]))
+        angles.sort()
         list1x = []
         list1y = []
         list2x = []
@@ -85,12 +141,12 @@ class DerivativeMethod:
             if point.scan_angle == angles[1]:
                 list2x.append(point.X)
                 list2y.append(point.Y)
-        x1 = np.average(np.array(list1x))
-        y1 = np.average(np.array(list1y))
-        x2 = np.average(np.array(list2x))
-        y2 = np.average(np.array(list2y))
+        x_min = np.average(np.array(list1x))
+        y_min = np.average(np.array(list1y))
+        x_max = np.average(np.array(list2x))
+        y_max = np.average(np.array(list2y))
 
-        return (x1, y1), (x2, y2)
+        return (x_min, y_min), (x_max, y_max)
 
 
 
@@ -105,7 +161,7 @@ class DerivativeMethod:
             for idx in nbridxs:
                 if dataset.points[idx].scan_angle == angle - 1 or dataset.points[idx].scan_angle == angle + 1:
                     neighbours.append(dataset.points[idx])
-        return common.PointSetNormalized(neighbours)
+        return common.PointSet(neighbours)
 
     def circular_mask(self, Y):
         y, x = np.ogrid[-Y.shape[0] / 2: Y.shape[0] / 2, -Y.shape[0] / 2: Y.shape[0] / 2]
