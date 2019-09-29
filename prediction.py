@@ -7,7 +7,7 @@ import random
 import time
 
 import m_hough_global
-import m_derivative
+import m_airplaneprops
 import common
 
 # config
@@ -47,7 +47,7 @@ for name in names:
     augset = common.AugmentableSet(augmentable_folder, name)
 
     for aug in augset.augmentables:
-        method = m_derivative.DerivativeMethod(R=30, bmpsize_full_dataset=4000, filter=True)
+        method = m_airplaneprops.AirplanePropertiesEstimation(R=30, bmpsize_full_dataset=4000, filter=True)
         method.run(dataset=dataset, augmentable=aug)
 
 

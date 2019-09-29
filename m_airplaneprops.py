@@ -4,7 +4,7 @@ import math
 from PIL import Image
 import random
 
-class DerivativeMethod:
+class AirplanePropertiesEstimation:
 
     def __init__(self, R, bmpsize_full_dataset, filter=True):
         self.bmpsize_full_dataset = bmpsize_full_dataset
@@ -26,7 +26,7 @@ class DerivativeMethod:
 
 
         # compute params
-        R = 2.5 * DerivativeMethod.length_of_one_degree(minptalpha, 1000.0) / 2
+        R = 2.5 * AirplanePropertiesEstimation.length_of_one_degree(minptalpha, 1000.0) / 2
         bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
 
 
@@ -53,12 +53,11 @@ class DerivativeMethod:
         common.Visualization.visualize_points([p_min, p_max], S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
 
 
-        # average distance is the distance of one degree - scan_direction and height are now computable
+        # from p_min and p_max now compute dist, scan_direction and height x
         dist = math.sqrt(((p_max[0] - p_min[0]) ** 2) + ((p_max[1] - p_min[1]) ** 2))
         scan_direction = np.array([p_max[0] - p_min[0], p_max[1] - p_min[1]])
         scan_direction = scan_direction / np.linalg.norm(scan_direction)
         height = self.height_at_degree(angle=minptalpha, dist=dist)
-
 
 
         # Interpolate the true scan angle
@@ -90,15 +89,16 @@ class DerivativeMethod:
         a_aug = a_m + (x_A - x_m) * (a_n - a_m) / (x_n - x_m)
 
 
+        # Compute airplane_position
         x = np.array([0,0,height])
         xtana = scan_direction * height * math.tan(a_aug)
         xtana = np.array([xtana[0], xtana[1], 0])
         A = [augmentable.location[0], augmentable.location[1], augmentable.location[2]]
         airplane_position = A + (x + xtana)
 
+
+
         airplane_directions = [[0,0], [scan_direction[0], scan_direction[1]]]
-
-
         return airplane_position, airplane_directions
 
         ## MAYBE DO LAST / EVENTUALLY
@@ -178,7 +178,7 @@ class DerivativeMethod:
 
     def get_line(self, angle):
         point = [0, 1]
-        point_rotated = DerivativeMethod.rotate_origin_only(point, angle)
+        point_rotated = AirplanePropertiesEstimation.rotate_origin_only(point, angle)
         return point_rotated
 
     def visualize_at_derivative(self, Y, angle, padding):
@@ -233,7 +233,7 @@ class DerivativeMethod:
 
         A_trans = np.zeros(A.shape)
         for i in range(len(pos)):
-            x, y = DerivativeMethod.rotate_origin_only((pos[i][0], pos[i][1]), radians)
+            x, y = AirplanePropertiesEstimation.rotate_origin_only((pos[i][0], pos[i][1]), radians)
             x, y = x + A.shape[0] / 2, y + A.shape[1] / 2
             A_trans[int(x),int(y)] = 1
 
