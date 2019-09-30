@@ -47,8 +47,9 @@ for name in names:
     augset = common.AugmentableSet(augmentable_folder, name)
 
     for aug in augset.augmentables:
-        method = m_airplaneprops.AirplanePropertiesEstimation(R=30, bmpsize_full_dataset=4000, filter=True)
-        method.run(dataset=dataset, augmentable=aug)
+        method = m_airplaneprops.AirplanePropertiesEstimation(bmpsize_full_dataset=4000, filter=True)
+        pos, ortho_dir, scandir_deriv, scandir_hough = method.run(dataset=dataset, augmentable=aug)
+        aug.directions
 
 
 

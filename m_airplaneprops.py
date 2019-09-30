@@ -9,9 +9,8 @@ import random
 
 class AirplanePropertiesEstimation:
 
-    def __init__(self, R, bmpsize_full_dataset, filter=True):
+    def __init__(self, bmpsize_full_dataset, filter=True):
         self.bmpsize_full_dataset = bmpsize_full_dataset
-        self.R = R # in meters
         self.filter = filter
 
     # not that dataset is already in normalized space and augmentable in in original point cloud space!

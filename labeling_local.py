@@ -283,10 +283,19 @@ class mainWindow():
             data = data[int(data.shape[0] / 2):,:]
         else:
             data = data[:int(data.shape[0] / 2), :]
+        data = data / 255
+        data = self.transform_data_to_scanangle_vis(data)
         self.im = Image.frombytes('L', (data.shape[1], data.shape[0]), data.astype('b').tostring())
         self.photo = ImageTk.PhotoImage(image=self.im)
         self.canvas.create_image(0, 0, image=self.photo, anchor=NW)
         self.currimage = data
+
+    def transform_data_to_scanangle_vis(self, data):
+        for i in range(data.shape[0]):
+            for j in range(data.shape[1]):
+                if data[i,j] % 2 == 0 and data[i,j] != 0:
+                    data[i,j] = 255
+        return data
 
 
 mainWindow()
