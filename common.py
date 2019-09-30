@@ -90,6 +90,9 @@ class LidarDatasetNormXYZRGBAngle:
             self.points = [LidarPointXYZRGBAngle(line[0].rstrip() + ' ' + line[1].rstrip()) for line in zip(lines, lines_scan_angles)]
             for i in range(len(self.points)):
                 self.points[i].origidx = i
+            lines = None
+            lines_scan_angles = None
+
 
             self.minx, self.miny, self.points = self.normalize_points(self.points)
 
@@ -233,7 +236,7 @@ class HoughTransform:
         img.show()
 
     @staticmethod
-    def visualize_scananglematrix(Y):
+    def visualize_scananglematrix(Y): # spectrum from 0 to 60
         img = Image.new('RGB', (Y.shape[0], Y.shape[1]), 'white')  # Create a new black image
         pixels = img.load()  # create the pixel map
         for i in range(Y.shape[0]):
@@ -405,7 +408,7 @@ class Visualization:
 
 
 
-def load_points(lasfile, width, height, do_pickle=True):
+def load_points(lasfile, lasfilescanangles, width, height, do_pickle=True):
 
     # load lidar file and project it to 2D bmp. Return the projection.
     filename = tempfolder + '\\' + lasfile.split('\\')[-1] + str(width) + "_" + str(height) + ".bin"
@@ -421,6 +424,12 @@ def load_points(lasfile, width, height, do_pickle=True):
         x = float(parts[0])
         y = float(parts[1])
         points.append((x,y))
+
+    # load the scan angles files
+    lines = open(lasfilescanangles, 'r').readlines()
+    angles = []
+    for line in lines:
+        angles.append(float(line.rstrip()))
 
     # find mins
     minx, miny = 10000000, 10000000
@@ -440,7 +449,7 @@ def load_points(lasfile, width, height, do_pickle=True):
         try:
             x = (float(width) / 1000.0) * points[i][0]
             y = (float(height) / 1000.0) * points[i][1]
-            X[int(x), int(y)] = 1
+            X[int(x), int(y)] = angles[i] + 30
         except:
             pass
 

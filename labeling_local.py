@@ -60,11 +60,12 @@ def on_init():
     dataset_names_final = []
     for dataset_name in dataset_names:
 
-        if os.path.isfile(augmentations_folder + '\\' + dataset_name + 'augmentation_result_transformed.txt'):
-            continue
+        #if os.path.isfile(augmentations_folder + '\\' + dataset_name + 'augmentation_result_transformed.txt'):
+            #continue
         print("Loading " + dataset_name)
         filename = lidar_folder + '\\' + dataset_name + '.txt'
-        bmp, minx, miny = common.load_points(filename, imagewidth, imageheight, True)
+        filenamescanangles = lidar_folder + '\\' + dataset_name + 'angle.txt'
+        bmp, minx, miny = common.load_points(filename, filenamescanangles, imagewidth, imageheight, True)
         samples, labels = load_augmentation_samples(augmentations_folder + '\\' + dataset_name + 'augmentation_result.txt', imagewidth, imageheight, minx, miny)
         all_bmps.append(bmp)
         all_minx.append(minx)
