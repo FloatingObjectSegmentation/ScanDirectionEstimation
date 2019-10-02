@@ -9,9 +9,8 @@ import random
 
 class AirplanePropertiesEstimation:
 
-    def __init__(self, bmpsize_full_dataset, filter=True):
+    def __init__(self, bmpsize_full_dataset):
         self.bmpsize_full_dataset = bmpsize_full_dataset
-        self.filter = filter
 
     # not that dataset is already in normalized space and augmentable in in original point cloud space!
     def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
@@ -35,6 +34,7 @@ class AirplanePropertiesEstimation:
         # S_whole = assume x = 1000, take 2.5 degrees of range for it, divide by 2 because it's polmer!
         nbr_indices = dataset.find_neighbours(aug_loc, R=R)
         S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
+        common.Visualization.visualize(S_whole, S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
 
 
         # Find out whether both neighboring degrees are present
@@ -58,6 +58,7 @@ class AirplanePropertiesEstimation:
 
         # S_small = from S_big take only the points that are the same degree
         S_small = common.PointOperations.filter_points_by_angle(S_whole, minptalpha)
+        common.Visualization.visualize(S_small, S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
 
         ########################
         ## FROM DEGREE RANGE ESTIMATE HEIGHT
@@ -106,7 +107,7 @@ class AirplanePropertiesEstimation:
         x_A = np.linalg.norm(p2 - aug)
         a_m = a1
         a_n = a2
-        a_aug = a_m + (x_A - x_m) * (a_n - a_m) / (x_n - x_m)
+        a_aug = a_m + (x_A - x_m) * (a_n - a_m) / (x_n  - x_m)
 
 
         # Compute airplane_position
@@ -164,7 +165,7 @@ class AirplanePropertiesEstimation:
 
     @staticmethod
     def length_of_one_degree(angle, height):
-        angle = math.abs(angle)
+        angle = math.fabs(angle)
         alpha1 = (angle + 1) * math.pi / 180.0
         alpha2 = angle * math.pi / 180.0
         dist = (height * math.tan(alpha1)) - height * math.tan(alpha2)
@@ -174,7 +175,7 @@ class AirplanePropertiesEstimation:
     def height_at_degree(angle, dist):
         # we know that X * tg(alpha) = y, y and alpha are knowns
         # airplane height = X
-        angle = math.abs(angle)
+        angle = math.fabs(angle)
         alpha1 = (angle + 1) * math.pi / 180.0
         alpha2 = angle * math.pi / 180.0
         height = dist / (math.tan(alpha1) - math.tan(alpha2))
