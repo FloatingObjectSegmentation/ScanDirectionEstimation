@@ -125,7 +125,7 @@ class LidarDatasetNormXYZRGBAngle:
             points[i].X -= minx
             points[i].Y -= miny
         return minx, miny, points
-
+\
     def store_pickled(self):
         filename = LidarDatasetNormXYZRGBAngle.getserializedfilename(self.path)
         print(filename)
