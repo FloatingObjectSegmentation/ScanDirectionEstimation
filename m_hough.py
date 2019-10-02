@@ -7,8 +7,8 @@ import random
 
 class HoughMethod:
 
-    def __init__(self):
-        pass
+    def __init__(self, do_visualization=False):
+        self.do_visualization = do_visualization
 
     def scan_direction_hough(self, S_whole, angle, bmpsize):
         pass
@@ -19,9 +19,12 @@ class HoughMethod:
         Y = self.circular_mask(Y)
 
         accumulator, thetas, rhos = HoughMethod.hough_line(Y)
-        HoughMethod.visualize_accumulator(accumulator)
+        if self.do_visualization:
+            HoughMethod.visualize_accumulator(accumulator)
         Y = HoughMethod.insert_resulting_lines(Y, accumulator, rhos, thetas)
-        common.HoughTransform.visualize_matrix(Y)
+        if self.do_visualization:
+            common.HoughTransform.visualize_matrix(Y)
+
 
         xs, ys = np.where(Y == 2)
         scan_direction = [[[xs[0], ys[0]], [xs[len(xs) - 1], ys[len(ys) - 1]]]]

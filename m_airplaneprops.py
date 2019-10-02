@@ -9,9 +9,10 @@ import random
 
 class AirplanePropertiesEstimation:
 
-    def __init__(self, bmpsize_full_dataset, bmpswathspan):
+    def __init__(self, bmpsize_full_dataset, bmpswathspan, do_visualization=False):
         self.bmpsize_full_dataset = bmpsize_full_dataset
         self.bmpswathspan = bmpswathspan
+        self.do_visualization = do_visualization
 
     # not that dataset is already in normalized space and augmentable in in original point cloud space!
     def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
@@ -35,7 +36,8 @@ class AirplanePropertiesEstimation:
         # S_whole = assume x = 1000, take 2.5 degrees of range for it, divide by 2 because it's polmer!
         nbr_indices = dataset.find_neighbours(aug_loc, R=R)
         S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
-        common.Visualization.visualize(S_whole, S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
+        if self.do_visualization:
+            common.Visualization.visualize(S_whole, S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
 
 
         # Find out whether both neighboring degrees are present
@@ -59,7 +61,8 @@ class AirplanePropertiesEstimation:
 
         # S_small = from S_big take only the points that are the same degree
         S_small = common.PointOperations.filter_points_by_angle(S_whole, minptalpha)
-        common.Visualization.visualize(S_small, S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
+        if self.do_visualization:
+            common.Visualization.visualize(S_small, S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
 
         ########################
         ## FROM DEGREE RANGE ESTIMATE HEIGHT
@@ -72,7 +75,8 @@ class AirplanePropertiesEstimation:
 
         # average points
         p_min, p_max = self.average_points_in_clusters(points=angle_nbrs)
-        common.Visualization.visualize_points([p_min, p_max], S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
+        if self.do_visualization:
+            common.Visualization.visualize_points([p_min, p_max], S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
 
 
         # from p_min and p_max now compute dist, scan_direction and height x

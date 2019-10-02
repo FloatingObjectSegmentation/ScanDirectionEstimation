@@ -7,7 +7,8 @@ import random
 
 class DerivativeMethod:
 
-    def __init__(self):
+    def __init__(self, do_visualization=False):
+        self.do_visualization = do_visualization
         pass
 
     def scan_direction_derivative(self, S_whole, angle, bmpsize):
@@ -18,7 +19,8 @@ class DerivativeMethod:
         Y = common.Visualization.transform_points_to_bmp_with_bounds(S_whole, bmpsize, minx, maxx, miny, maxy)
         Y = self.circular_mask(Y)
         bestangle = self.compute_bestangle(Y)
-        self.visualize_at_derivative(Y, angle=bestangle, padding=1)
+        if self.do_visualization:
+            self.visualize_at_derivative(Y, angle=bestangle, padding=1)
 
         G = np.zeros(Y.shape)
         y = Y.shape[0] / 2
