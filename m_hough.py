@@ -60,8 +60,6 @@ class HoughMethod:
             x = x_idxs[i]
             y = y_idxs[i]
 
-            if i % 10000 == 0:
-                print(i)
             for t_idx in range(num_thetas):
                 # Calculate rho. diag_len is added for a positive index
                 rho = round(x * cos_t[t_idx] + y * sin_t[t_idx]) + diag_len

@@ -38,7 +38,7 @@ class DerivativeMethod:
         minscore = 1000000
         for x in np.linspace(0, 3.14, 180):
             score = self.derivative(Y, angle=x, padding=1)
-            print(score)
+
             if score < minscore:
                 minscore = score
                 minangle = x

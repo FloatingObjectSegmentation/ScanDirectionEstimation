@@ -64,6 +64,8 @@ for name in names:
     results = []
     for i, aug in enumerate(augs_swath.augmentables):
 
+        start = time.time()
+
         if len(predictions[name]) >= i + 1 and predictions[name][i].position != []:
             continue # case already solved
 
@@ -78,6 +80,8 @@ for name in names:
             res = Result(name, i, [], [], [], [], [])
             results.append(res)
 
+        end = time.time()
+        print("Time taken: " + str(end - start))
     predictions[name] = results
     pickle.dump(predictions, open(prediction_dump_path, 'wb'))
 
