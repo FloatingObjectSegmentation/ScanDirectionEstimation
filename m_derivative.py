@@ -57,8 +57,7 @@ class DerivativeMethod:
         score = np.sum(deriv)
         return score
 
-    @staticmethod
-    def rotate_origin_only(xy, radians):
+    def rotate_origin_only(self, xy, radians):
         """Only rotate a point around the origin (0, 0)."""
         x, y = xy
         xx = x * math.cos(radians) + y * math.sin(radians)
@@ -76,7 +75,7 @@ class DerivativeMethod:
 
         A_trans = np.zeros(A.shape)
         for i in range(len(pos)):
-            x, y = DerivativeMethod.rotate_origin_only((pos[i][0], pos[i][1]), radians)
+            x, y = self.rotate_origin_only((pos[i][0], pos[i][1]), radians)
             x, y = x + A.shape[0] / 2, y + A.shape[1] / 2
             A_trans[int(x), int(y)] = 1
 

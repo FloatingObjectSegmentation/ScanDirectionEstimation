@@ -18,10 +18,10 @@ class HoughMethod:
         Y = common.Visualization.transform_points_to_bmp_with_bounds(S_whole, bmpsize, minx, maxx, miny, maxy)
         Y = self.circular_mask(Y)
 
-        accumulator, thetas, rhos = HoughMethod.hough_line(Y)
+        accumulator, thetas, rhos = self.hough_line(Y)
         if self.do_visualization:
-            HoughMethod.visualize_accumulator(accumulator)
-        Y = HoughMethod.insert_resulting_lines(Y, accumulator, rhos, thetas)
+            self.visualize_accumulator(accumulator)
+        Y = self.insert_resulting_lines(Y, accumulator, rhos, thetas)
         if self.do_visualization:
             common.HoughTransform.visualize_matrix(Y)
 
@@ -38,8 +38,8 @@ class HoughMethod:
         Y = mask * Y
         return Y
 
-    @staticmethod
-    def hough_line(img):
+
+    def hough_line(self, img):
         # Rho and Theta ranges
         thetas = np.deg2rad(np.arange(-90.0, 90.0))
         width, height = img.shape
@@ -67,8 +67,8 @@ class HoughMethod:
 
         return accumulator, thetas, rhos
 
-    @staticmethod
-    def visualize_accumulator(accumulator):
+
+    def visualize_accumulator(self, accumulator):
         img = Image.new('RGB', (accumulator.shape[0], accumulator.shape[1]), 'white')
         pixels = img.load()
         for i in range(accumulator.shape[0]):
@@ -76,8 +76,7 @@ class HoughMethod:
                 pixels[i, j] = (int(accumulator[i, j] / np.max(accumulator) * 255), 0, 0)
         img.show()
 
-    @staticmethod
-    def insert_resulting_lines(Y, accumulator, rhos, thetas):
+    def insert_resulting_lines(self, Y, accumulator, rhos, thetas):
 
         idx0 = np.argpartition(accumulator.ravel(), -1)[-1:]
         idxs = idx0[accumulator.ravel()[idx0].argsort()][::-1]

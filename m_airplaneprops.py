@@ -30,7 +30,7 @@ class AirplanePropertiesEstimation:
 
 
         # compute params
-        R = 2.5 * AirplanePropertiesEstimation.length_of_one_degree(minptalpha, 1000.0) / 2
+        R = 2.5 * self.length_of_one_degree(minptalpha, 1000.0) / 2
         bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
 
 
@@ -56,7 +56,7 @@ class AirplanePropertiesEstimation:
             minptalpha = p.scan_angle
 
             # compute new S_whole around it and params (because neighboring degree to alpha-1 may not be contained in old S_whole)
-            R = 2.5 * AirplanePropertiesEstimation.length_of_one_degree(minptalpha, 1000.0) / 2
+            R = 2.5 * self.length_of_one_degree(minptalpha, 1000.0) / 2
             bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
             nbr_indices = dataset.find_neighbours(aug_loc, R=R)
             S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
@@ -135,7 +135,7 @@ class AirplanePropertiesEstimation:
         for bmpsize in self.bmpswathspan:
 
             self.printifverbose("For bmpsize=" + str(bmpsize))
-            R = 2.5 * AirplanePropertiesEstimation.length_of_one_degree(minptalpha, 1000.0) / 2
+            R = 2.5 * self.length_of_one_degree(minptalpha, 1000.0) / 2
             bmpsizenbrs = int(bmpsize / 1000 * R)
             self.printifverbose("Using derivative")
             scan_direction_derivative = m_derivative.DerivativeMethod().scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
@@ -188,16 +188,15 @@ class AirplanePropertiesEstimation:
                     neighbours.append(dataset.points[idx])
         return common.PointSet(neighbours)
 
-    @staticmethod
-    def length_of_one_degree(angle, height):
+    def length_of_one_degree(self, angle, height):
         angle = math.fabs(angle)
         alpha1 = (angle + 1) * math.pi / 180.0
         alpha2 = angle * math.pi / 180.0
         dist = (height * math.tan(alpha1)) - height * math.tan(alpha2)
         return dist
 
-    @staticmethod
-    def height_at_degree(angle, dist):
+
+    def height_at_degree(self, angle, dist):
         # we know that X * tg(alpha) = y, y and alpha are knowns
         # airplane height = X
         angle = math.fabs(angle)
