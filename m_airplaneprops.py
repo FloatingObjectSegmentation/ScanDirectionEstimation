@@ -9,8 +9,9 @@ import random
 
 class AirplanePropertiesEstimation:
 
-    def __init__(self, bmpsize_full_dataset):
+    def __init__(self, bmpsize_full_dataset, bmpswathspan):
         self.bmpsize_full_dataset = bmpsize_full_dataset
+        self.bmpswathspan = bmpswathspan
 
     # not that dataset is already in normalized space and augmentable in in original point cloud space!
     def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
@@ -120,10 +121,15 @@ class AirplanePropertiesEstimation:
         airplane_ortho_direction = [[0,0], [scan_direction[0], scan_direction[1]]]
 
         # find scan direction
-        scan_direction_derivative = m_derivative.DerivativeMethod().scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
-        scan_direction_hough = m_hough.HoughMethod().scan_direction_hough(S_whole, minptalpha, bmpsizenbrs)
+        derivdirs = []
+        houghdirs = []
+        for bmpsize in self.bmpswathspan:
+            scan_direction_derivative = m_derivative.DerivativeMethod().scan_direction_derivative(S_whole, minptalpha, bmpsize)
+            derivdirs.append(scan_direction_derivative)
+            scan_direction_hough = m_hough.HoughMethod().scan_direction_hough(S_whole, minptalpha, bmpsize)
+            houghdirs.append(scan_direction_hough)
 
-        return airplane_position, airplane_ortho_direction, scan_direction_derivative, scan_direction_hough
+        return airplane_position, airplane_ortho_direction, derivdirs, houghdirs
 
 
     def average_points_in_clusters(self, points: common.PointSet):
