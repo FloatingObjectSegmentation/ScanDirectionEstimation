@@ -9,10 +9,11 @@ import random
 
 class AirplanePropertiesEstimation:
 
-    def __init__(self, bmpsize_full_dataset, bmpswathspan, do_visualization=False):
+    def __init__(self, bmpsize_full_dataset, bmpswathspan, do_visualization=False, verbose=True):
         self.bmpsize_full_dataset = bmpsize_full_dataset
         self.bmpswathspan = bmpswathspan
         self.do_visualization = do_visualization
+        self.verbose = verbose
 
     # not that dataset is already in normalized space and augmentable in in original point cloud space!
     def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
@@ -33,6 +34,8 @@ class AirplanePropertiesEstimation:
         bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
 
 
+        if self.verbose:
+            print("Finding airplane properties")
         # S_whole = assume x = 1000, take 2.5 degrees of range for it, divide by 2 because it's polmer!
         nbr_indices = dataset.find_neighbours(aug_loc, R=R)
         S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
@@ -125,13 +128,19 @@ class AirplanePropertiesEstimation:
 
         airplane_ortho_direction = [[0,0], [scan_direction[0], scan_direction[1]]]
 
+        if self.verbose:
+            print("Finding scan directions")
         # find scan direction
         derivdirs = []
         houghdirs = []
         for bmpsize in self.bmpswathspan:
-            scan_direction_derivative = m_derivative.DerivativeMethod().scan_direction_derivative(S_whole, minptalpha, bmpsize)
+
+            R = 2.5 * AirplanePropertiesEstimation.length_of_one_degree(minptalpha, 1000.0) / 2
+            bmpsizenbrs = int(bmpsize / 1000 * R)
+
+            scan_direction_derivative = m_derivative.DerivativeMethod().scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
             derivdirs.append(scan_direction_derivative)
-            scan_direction_hough = m_hough.HoughMethod().scan_direction_hough(S_whole, minptalpha, bmpsize)
+            scan_direction_hough = m_hough.HoughMethod().scan_direction_hough(S_whole, minptalpha, bmpsizenbrs)
             houghdirs.append(scan_direction_hough)
 
         return airplane_position, airplane_ortho_direction, derivdirs, houghdirs
