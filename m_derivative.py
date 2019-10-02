@@ -15,8 +15,8 @@ class DerivativeMethod:
         pass
         # filter by neighboring scan angles S_whole
         minx, maxx, miny, maxy = S_whole.minx, S_whole.maxx, S_whole.miny, S_whole.maxy
-        S_whole = common.PointOperations.filter_points_by_angle_range(S_whole, angle - 1, angle + 1)
-        Y = common.Visualization.transform_points_to_bmp_with_bounds(S_whole, bmpsize, minx, maxx, miny, maxy)
+        S_whole = common.PointOperations().filter_points_by_angle_range(S_whole, angle - 1, angle + 1)
+        Y = common.Visualization().transform_points_to_bmp_with_bounds(S_whole, bmpsize, minx, maxx, miny, maxy)
         Y = self.circular_mask(Y)
         bestangle = self.compute_bestangle(Y)
         if self.do_visualization:
@@ -96,7 +96,7 @@ class DerivativeMethod:
         # make array of points from it
         points = [[x, y] for x, y in zip(list(xs), list(ys))]
         # again project to bmp
-        D = common.Visualization.transform_rawpoints_to_bmp_with_bounds(points, Y.shape[0], 0, Y.shape[0], 0, Y.shape[0])
+        D = common.Visualization().transform_rawpoints_to_bmp_with_bounds(points, Y.shape[0], 0, Y.shape[0], 0, Y.shape[0])
 
 
         Y_trans = self.rotate_matrix(Y, angle)

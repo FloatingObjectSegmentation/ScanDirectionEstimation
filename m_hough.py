@@ -14,8 +14,8 @@ class HoughMethod:
         pass
         # filter by neighboring scan angles S_whole
         minx, maxx, miny, maxy = S_whole.minx, S_whole.maxx, S_whole.miny, S_whole.maxy
-        S_whole = common.PointOperations.filter_points_by_angle_range(S_whole, angle - 1, angle + 1)
-        Y = common.Visualization.transform_points_to_bmp_with_bounds(S_whole, bmpsize, minx, maxx, miny, maxy)
+        S_whole = common.PointOperations().filter_points_by_angle_range(S_whole, angle - 1, angle + 1)
+        Y = common.Visualization().transform_points_to_bmp_with_bounds(S_whole, bmpsize, minx, maxx, miny, maxy)
         Y = self.circular_mask(Y)
 
         accumulator, thetas, rhos = self.hough_line(Y)
@@ -23,7 +23,7 @@ class HoughMethod:
             self.visualize_accumulator(accumulator)
         Y = self.insert_resulting_lines(Y, accumulator, rhos, thetas)
         if self.do_visualization:
-            common.HoughTransform.visualize_matrix(Y)
+            common.HoughTransform().visualize_matrix(Y)
 
 
         xs, ys = np.where(Y == 2)

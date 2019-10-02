@@ -192,8 +192,11 @@ class PointSet:
 ## HOUGH TRANSFORM WITH HELPER METHODS
 class HoughTransform:
 
-    @staticmethod
-    def hough_line(img):
+    def __init__(self):
+        pass
+
+
+    def hough_line(self, img):
       #Rho and Theta ranges
       thetas = np.deg2rad(np.arange(-90.0, 90.0))
       width, height = img.shape
@@ -223,8 +226,8 @@ class HoughTransform:
 
       return accumulator, thetas, rhos
 
-    @staticmethod
-    def visualize_matrix(Y):
+
+    def visualize_matrix(self, Y):
         img = Image.new('RGB', (Y.shape[0], Y.shape[1]), 'white')  # Create a new black image
         pixels = img.load()  # create the pixel map
         for i in range(Y.shape[0]):
@@ -235,8 +238,8 @@ class HoughTransform:
                     pixels[i, j] = (0, 255, 0)
         img.show()
 
-    @staticmethod
-    def visualize_scananglematrix(Y): # spectrum from 0 to 60
+
+    def visualize_scananglematrix(self, Y): # spectrum from 0 to 60
         img = Image.new('RGB', (Y.shape[0], Y.shape[1]), 'white')  # Create a new black image
         pixels = img.load()  # create the pixel map
         for i in range(Y.shape[0]):
@@ -280,8 +283,11 @@ class HoughTransform:
 
 class PointOperations:
 
-    @staticmethod
-    def find_points_within_R(dataset: LidarDatasetNormXYZRGBAngle, augmentable: Augmentable, R):
+    def __init__(self):
+        pass
+
+
+    def find_points_within_R(self, dataset: LidarDatasetNormXYZRGBAngle, augmentable: Augmentable, R):
         result = []
 
         aug = [augmentable.location[0] - dataset.minx, augmentable.location[1] - dataset.miny]
@@ -296,8 +302,8 @@ class PointOperations:
                 minptval = dist
         return result, minptidx
 
-    @staticmethod
-    def filter_points_by_angle(nbrs: PointSet, scan_angle):
+
+    def filter_points_by_angle(self, nbrs: PointSet, scan_angle):
         nbrlist = nbrs.points
         filtered_nbrs = []
         for nbr in nbrlist:
@@ -305,8 +311,8 @@ class PointOperations:
                 filtered_nbrs.append(nbr)
         return PointSet(filtered_nbrs)
 
-    @staticmethod
-    def filter_points_by_angle_range(nbrs: PointSet, minangle, maxangle):
+
+    def filter_points_by_angle_range(self, nbrs: PointSet, minangle, maxangle):
         nbrlist = nbrs.points
         filtered_nbrs = []
         for nbr in nbrlist:
@@ -316,19 +322,21 @@ class PointOperations:
 
 class Visualization:
 
-    @staticmethod
-    def visualize(points:PointSet, minx, miny, maxx, maxy, bmpsize):
+    def __init__(self):
+        pass
+
+
+    def visualize(self, points:PointSet, minx, miny, maxx, maxy, bmpsize):
         G = Visualization.transform_points_to_bmp_with_bounds(points, bmpsize, minx, maxx, miny, maxy)
         HoughTransform.visualize_matrix(G)
 
-    @staticmethod
-    def visualize_points(points, minx, miny, maxx, maxy, bmpsize):
+
+    def visualize_points(self, points, minx, miny, maxx, maxy, bmpsize):
         G = Visualization.transform_rawpoints_to_bmp_with_bounds(points, bmpsize, minx, maxx, miny, maxy)
         HoughTransform.visualize_matrix(G)
 
 
-    @staticmethod
-    def transform_dataset_to_scananglebmp(dataset: LidarDatasetNormXYZRGBAngle, bmpsize):
+    def transform_dataset_to_scananglebmp(self, dataset: LidarDatasetNormXYZRGBAngle, bmpsize):
 
         X = np.zeros((bmpsize, bmpsize))
         for i in range(len(dataset.points)):
@@ -341,8 +349,8 @@ class Visualization:
 
         return X
 
-    @staticmethod
-    def transform_dataset_to_bmp(dataset: LidarDatasetNormXYZRGBAngle, bmpsize, do_pickle=True):
+
+    def transform_dataset_to_bmp(self, dataset: LidarDatasetNormXYZRGBAngle, bmpsize, do_pickle=True):
 
         picklepath = tempfolder + "\\" + dataset.name + ".txt" + str(bmpsize) + "_" + str(bmpsize) + ".bin"
 
@@ -364,8 +372,8 @@ class Visualization:
 
         return X
 
-    @staticmethod
-    def transform_points_to_bmp(points: PointSet, bmpsize: int):
+
+    def transform_points_to_bmp(self, points: PointSet, bmpsize: int):
 
         # fill to bmp
         X = np.zeros((bmpsize, bmpsize))
@@ -378,8 +386,8 @@ class Visualization:
                 pass
         return X
 
-    @staticmethod
-    def transform_points_to_bmp_with_bounds(points: PointSet, bmpsize: int, minx, maxx, miny, maxy):
+
+    def transform_points_to_bmp_with_bounds(self, points: PointSet, bmpsize: int, minx, maxx, miny, maxy):
 
         # fill to bmp
         X = np.zeros((bmpsize, bmpsize))
@@ -392,8 +400,8 @@ class Visualization:
                 pass
         return X
 
-    @staticmethod
-    def transform_rawpoints_to_bmp_with_bounds(points, bmpsize: int, minx, maxx, miny, maxy): # points = (x,y)
+
+    def transform_rawpoints_to_bmp_with_bounds(self, points, bmpsize: int, minx, maxx, miny, maxy): # points = (x,y)
 
         # fill to bmp
         X = np.zeros((bmpsize, bmpsize))
