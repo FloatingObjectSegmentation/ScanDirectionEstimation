@@ -70,7 +70,8 @@ class AirplanePropertiesEstimation:
 
         # find nearest points with the neighboring angle
         angle_nbrs = self.nearest_angle_neighbors(dataset=dataset, S_small=S_small)
-        common.Visualization.visualize(angle_nbrs, S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
+        if self.do_visualization:
+            common.Visualization.visualize(angle_nbrs, S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
 
 
         # average points
