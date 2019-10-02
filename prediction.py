@@ -27,9 +27,21 @@ class Result:
         self.houghdirs = houghdirs
         self.bmpspan = bmpspan
 
+def angle_between_vectors(u, v): # should be [xu,yu], [xv, yv]
+    u = np.array(u)
+    v = np.array(v)
+    dotprod = u.dot(v) / np.sqrt(u.dot(v)) * np.sqrt(u.dot(v))
+    angle = math.acos(dotprod)
+    if (angle > math.pi / 2):
+        u = -u
+        dotprod = u.dot(v) / np.sqrt(u.dot(u)) * np.sqrt(v.dot(v))
+        angle = math.acos(dotprod)
+        return angle
+    return angle
 
 
 # first compute the predictions
+predictions = {}
 
 names = common.get_dataset_names(lidar_folder)
 for name in names:
@@ -54,3 +66,41 @@ for name in names:
             results.append(res)
 
     # pickle predictions
+    predictions[name] = results
+
+    pass
+
+# predictions[dataset] -> list(Result) ->
+
+# compare predictions with ground truth
+for name in names:
+
+    augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
+    augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name)
+    preds = predictions[name]
+
+    for i, x in enumerate(augs_swath.augmentables):
+        D_swath = x.directions
+        D_plane = augs_plane.augmentables[i].directions
+        D_pred = preds[i]
+
+        # hough
+        preds1 = []
+        for p_dir in D_pred.houghdirs:
+            minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
+            preds1.append(minangle)
+        D_pred.houghpreds = preds1
+
+        # deriv
+        preds2 = []
+        for p_dir in D_pred.derivdirs:
+            minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
+            preds2.append(minangle)
+        D_pred.derivpreds = preds2
+
+        # plane
+        minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
+        D_pred.airplanepred = minangle
+
+
+
