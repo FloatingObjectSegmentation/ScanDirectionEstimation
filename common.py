@@ -106,6 +106,11 @@ class RawLidarDatasetNormXYZRGBAngle:
         nn_indices = [[idx for idx in nn_indices] for nn_indices in all_nn_indices]
         return nn_indices[0]
 
+    def find_neighbours_pointset(self, point, R):
+        indices = self.find_neighbours(point, R)
+        S_whole = PointSet([self.points[i] for i in indices])
+        return S_whole.points
+
     def find_closest_neighbour(self, point):
         nearest_dist, nearest_ind = self.kdtree.query([point], k=1)
         return nearest_ind[0][0]
@@ -116,7 +121,7 @@ class RawLidarDatasetNormXYZRGBAngle:
         pickle.dump((self.path, self.minx, self.miny, self.points, self.kdtree), open(filename, 'wb'))
 
     def load_pickled(self):
-        filename = LidarDatasetNormXYZRGBAngle.getserializedfilename(self.path)
+        filename = RawLidarDatasetNormXYZRGBAngle.getserializedfilename(self.path)
         if os.path.isfile(filename) and self.do_pickle:
             self.path, self.minx, self.miny, self.points, self.kdtree = pickle.load(open(filename, 'rb'))
             return True

@@ -49,121 +49,142 @@ def angle_between_vectors(u, v): # should be [xu,yu], [xv, yv]
 
 class OneAugmentableWork:
 
-    def __init__(self, name, dataset, aug, i):
+    def __init__(self, name, dataset, aug, i, do_work=True):
         self.method = m_airplaneprops.AirplanePropertiesEstimation(bmpsize_full_dataset=4000, bmpswathspan=swathspan)
         self.result = []
         self.name = name
         self.dataset = dataset
         self.aug = aug
         self.i = i
+        self.do_work = do_work
 
     def work(self, threadindex=-1):
         print('start work' + str(threadindex))
-        if len(predictions[name]) >= self.i + 1 and predictions[name][self.i].position != []:
-            self.result = None
-
+        if self.do_work == False:
+            self.result = Result(name, i, [], [], [], [], [])
+            return
         try:
             pos, ortho_dir, derivdirs, houghdirs = self.method.run(dataset=self.dataset, augmentable=self.aug)
             self.result = Result(self.name, self.i, pos, ortho_dir, derivdirs, houghdirs, swathspan)
         except:
             # store index of augmentable to later view where something went wrong
             print('something went wrong')
-            self.result = Result(name, i, [], [], [], [], [])
+            self.result = Result(self.name, i, [], [], [], [], [])
         print('finish work' + str(threadindex))
 
-# first compute the predictions
-predictions = defaultdict(list)
-try:
-    predictions = pickle.load(open(prediction_dump_path, 'rb'))
-except:
-    pass
 
-names = common.get_dataset_names(lidar_folder)
-names.sort()
+if __name__ == '__main__':
+    # first compute the predictions
+    predictions = defaultdict(list)
+    try:
+        predictions = pickle.load(open(prediction_dump_path, 'rb'))
+    except:
+        pass
 
-for name in names:
+    names = common.get_dataset_names(lidar_folder)
+    names.sort()
 
-    print('processing ' + name)
-    dataset = common.RawLidarDatasetNormXYZRGBAngle(lidar_folder, name)
-    augs = common.AugmentableSet(augmentable_folder_swath_sols, name)
+    for name in names:
 
-    partition = list(common.partition_list(augs.augmentables, 5))
+        print('processing ' + name)
+        dataset = common.RawLidarDatasetNormXYZRGBAngle(lidar_folder, name)
+        augs = common.AugmentableSet(augmentable_folder_swath_sols, name)
 
-    results = []
-    for chunk in partition:
+        partition = list(common.partition_list(augs.augmentables, 8))
 
-        start = time.time()
-        w0 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[0], i=chunk[0].idx)
-        w1 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[1], i=chunk[1].idx)
-        w2 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[2], i=chunk[2].idx)
-        w3 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[3], i=chunk[3].idx)
-        w4 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[4], i=chunk[4].idx)
+        results = []
+        for chunk in partition:
 
-        t0 = multiprocessing.Process(target=w0.work, args=(0,))
-        t1 = multiprocessing.Process(target=w1.work, args=(1,))
-        t2 = multiprocessing.Process(target=w2.work, args=(2,))
-        t3 = multiprocessing.Process(target=w3.work, args=(3,))
-        t4 = multiprocessing.Process(target=w4.work, args=(4,))
+            start = time.time()
 
-        t0.start()
-        t1.start()
-        t2.start()
-        t3.start()
-        t4.start()
+            w, p = [], []
+            for i in range(len(chunk)):
 
-        t0.join()
-        t1.join()
-        t2.join()
-        t3.join()
-        t4.join()
+                # prepare
+                x, y = chunk[i].location[0] - dataset.minx, chunk[i].location[1] - dataset.miny
+                nbrs = dataset.find_neighbours_pointset((x,y), 50.0)
+                data = common.LidarDatasetNormXYZRGBAngle(nbrs, dataset.minx, dataset.miny)
 
-        results.append(w0.result)
-        results.append(w1.result)
-        results.append(w2.result)
-        results.append(w3.result)
-        results.append(w4.result)
+                # verify if it is already processed
+                do_work = True
+                if len(predictions[name]) >= i + 1 and predictions[name][i].position != []:
+                    do_work = False
 
-        for r in results:
-            r.printresult()
+                wrk = OneAugmentableWork(name=name, dataset=data, aug=chunk[i], i=chunk[i].idx, do_work=do_work)
+                w.append(wrk)
+                thr = multiprocessing.Process(target=wrk.work, args=(i,))
+                p.append(thr)
 
-        end = time.time()
-        print("Time taken: " + str(end - start))
+            print('starting procs')
+            for i in range(len(p)):
+                p[i].start()
 
-    predictions[name] = results
-    pickle.dump(predictions, open(prediction_dump_path, 'wb'))
+            print('joining procs')
+            p[0].join()
+            p[1].join()
+            p[2].join()
+            p[3].join()
+            p[4].join()
+            p[5].join()
+            p[6].join()
+            p[7].join()
+
+            for i in range(len(w)):
+                results.append(w[i].result)
+
+            #for r in results:
+            #    r.printresult()
+
+            end = time.time()
+            print("Time taken: " + str(end - start))
+
+        predictions[name] = results
+        pickle.dump(predictions, open(prediction_dump_path, 'wb'))
 
 
-# predictions[dataset] -> list(Result) ->
 
-# compare predictions with ground truth
-for name in names:
 
-    augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
-    augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name)
-    preds = predictions[name]
 
-    for i, x in enumerate(augs_swath.augmentables):
-        D_swath = x.directions
-        D_plane = augs_plane.augmentables[i].directions
-        D_pred = preds[i]
 
-        # hough
-        preds1 = []
-        for p_dir in D_pred.houghdirs:
-            minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
-            preds1.append(minangle)
-        D_pred.houghpreds = preds1
 
-        # deriv
-        preds2 = []
-        for p_dir in D_pred.derivdirs:
-            minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
-            preds2.append(minangle)
-        D_pred.derivpreds = preds2
 
-        # plane
-        minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
-        D_pred.airplanepred = minangle
+
+
+
+
+
+
+    # predictions[dataset] -> list(Result) ->
+
+    # compare predictions with ground truth
+    for name in names:
+
+        augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
+        augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name)
+        preds = predictions[name]
+
+        for i, x in enumerate(augs_swath.augmentables):
+            D_swath = x.directions
+            D_plane = augs_plane.augmentables[i].directions
+            D_pred = preds[i]
+
+            # hough
+            preds1 = []
+            for p_dir in D_pred.houghdirs:
+                minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
+                preds1.append(minangle)
+            D_pred.houghpreds = preds1
+
+            # deriv
+            preds2 = []
+            for p_dir in D_pred.derivdirs:
+                minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
+                preds2.append(minangle)
+            D_pred.derivpreds = preds2
+
+            # plane
+            minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
+            D_pred.airplanepred = minangle
 
 
 
