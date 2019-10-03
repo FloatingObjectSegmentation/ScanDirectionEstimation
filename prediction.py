@@ -20,6 +20,10 @@ lidar_folder = 'E:/workspaces/LIDAR_WORKSPACE/lidar'
 prediction_dump_path = 'E:/workspaces/LIDAR_WORKSPACE/preds.bin'
 swathspan = [2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
 
+############################################################################
+## AUGMENTABLE LEVEL LOGIC
+############################################################################
+
 class Result:
     def __init__(self, datasetname, index, position, airplane_dir, derivdirs, houghdirs, bmpspan):
         self.datasetname = datasetname
@@ -72,9 +76,28 @@ class OneAugmentableWork:
             self.result = Result(self.name, i, [], [], [], [], [])
         print('finish work' + str(threadindex))
 
+############################################################################
+## CHUNK LEVEL LOGIC
+############################################################################
 
 def predict(name, predictions):
-    pass
+
+    print('processing ' + name)
+    dataset = common.RawLidarDatasetNormXYZRGBAngle(lidar_folder, name)
+    augs = common.AugmentableSet(augmentable_folder_swath_sols, name)
+
+    for aug in augs.augmentables:
+        x, y = aug.location[0] - dataset.minx, aug.location[1] - dataset.miny
+        nbrs = dataset.find_neighbours_pointset((x, y), 50.0)
+        data = common.LidarDatasetNormXYZRGBAngle(nbrs, dataset.minx, dataset.miny)
+
+        do_work = True
+        if len(predictions[name]) >= aug.idx + 1 and predictions[name][aug.idx].position != []:
+            do_work = False
+
+        wrk = OneAugmentableWork(name=name, dataset=data, aug=aug, i=aug.idx, do_work=do_work)
+        wrk.work()
+
 def predict_parallel(name ,predictions):
 
     print('processing ' + name)
@@ -130,6 +153,10 @@ def predict_parallel(name ,predictions):
     predictions[name] = results
     pickle.dump(predictions, open(prediction_dump_path, 'wb'))
 
+############################################################################
+## DATASET LEVEL LOGIC
+############################################################################
+
 if __name__ == '__main__':
     # first compute the predictions
     predictions = defaultdict(list)
@@ -142,11 +169,7 @@ if __name__ == '__main__':
     names.sort()
 
     for name in names:
-        predict_parallel(name, predictions)
-
-
-
-
+        predict(name, predictions)
 
 
 

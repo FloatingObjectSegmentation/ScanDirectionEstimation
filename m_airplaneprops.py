@@ -30,8 +30,8 @@ class AirplanePropertiesEstimation:
 
 
         # compute params
-        R = 2.5 * self.length_of_one_degree(minptalpha, 1000.0) / 2
-        bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
+        R = 2.5 * self.length_of_one_degree(minptalpha, 1400.0) / 2
+        bmpsizenbrs = int(self.bmpsize_full_dataset / 1400 * R)
 
 
         self.printifverbose("Finding airplane properties")
