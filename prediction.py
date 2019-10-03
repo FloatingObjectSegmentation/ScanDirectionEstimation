@@ -6,6 +6,7 @@ import math
 import random
 import time
 from collections import defaultdict
+import multiprocessing
 
 import m_hough
 import m_airplaneprops
@@ -83,7 +84,7 @@ names.sort()
 for name in names:
 
     print('processing ' + name)
-    dataset = common.LidarDatasetNormXYZRGBAngle(lidar_folder, name)
+    dataset = common.RawLidarDatasetNormXYZRGBAngle(lidar_folder, name)
     augs = common.AugmentableSet(augmentable_folder_swath_sols, name)
 
     partition = list(common.partition_list(augs.augmentables, 5))
@@ -98,11 +99,11 @@ for name in names:
         w3 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[3], i=chunk[3].idx)
         w4 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[4], i=chunk[4].idx)
 
-        t0 = threading.Thread(target=w0.work, args=(0,))
-        t1 = threading.Thread(target=w1.work, args=(1,))
-        t2 = threading.Thread(target=w2.work, args=(2,))
-        t3 = threading.Thread(target=w3.work, args=(3,))
-        t4 = threading.Thread(target=w4.work, args=(4,))
+        t0 = multiprocessing.Process(target=w0.work, args=(0,))
+        t1 = multiprocessing.Process(target=w1.work, args=(1,))
+        t2 = multiprocessing.Process(target=w2.work, args=(2,))
+        t3 = multiprocessing.Process(target=w3.work, args=(3,))
+        t4 = multiprocessing.Process(target=w4.work, args=(4,))
 
         t0.start()
         t1.start()

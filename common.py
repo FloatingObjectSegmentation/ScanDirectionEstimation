@@ -73,8 +73,7 @@ class LidarPointXYZRGBAngle:
         self.origidx = 0
 
 
-
-class LidarDatasetNormXYZRGBAngle:
+class RawLidarDatasetNormXYZRGBAngle:
 
     def __init__(self, folder, name, do_pickle=True):
 
@@ -87,12 +86,12 @@ class LidarDatasetNormXYZRGBAngle:
             lines = open(self.path + '.txt', 'r').readlines()
             lines_scan_angles = open(self.path + 'angle.txt', 'r').readlines()
 
-            self.points = [LidarPointXYZRGBAngle(line[0].rstrip() + ' ' + line[1].rstrip()) for line in zip(lines, lines_scan_angles)]
+            self.points = [LidarPointXYZRGBAngle(line[0].rstrip() + ' ' + line[1].rstrip()) for line in
+                           zip(lines, lines_scan_angles)]
             for i in range(len(self.points)):
                 self.points[i].origidx = i
             lines = None
             lines_scan_angles = None
-
 
             self.minx, self.miny, self.points = self.normalize_points(self.points)
 
@@ -102,29 +101,14 @@ class LidarDatasetNormXYZRGBAngle:
             if do_pickle:
                 self.store_pickled()
 
-    # public
-    def find_neighbours(self, point, R): # point = (x,y) tuple
+    def find_neighbours(self, point, R): # point = (x,y)
         all_nn_indices = self.kdtree.query_radius([point], r=R)
         nn_indices = [[idx for idx in nn_indices] for nn_indices in all_nn_indices]
         return nn_indices[0]
 
-    def find_closest_neighbour(self, point): # point = (x,y) tuple
+    def find_closest_neighbour(self, point):
         nearest_dist, nearest_ind = self.kdtree.query([point], k=1)
         return nearest_ind[0][0]
-
-
-    # auxiliary (private)
-    def normalize_points(self, points):
-        minx, miny = 10000000000000, 100000000000
-
-        for i in range(len(points)):
-            if points[i].X < minx: minx = points[i].X
-            if points[i].Y < miny: miny = points[i].Y
-
-        for i in range(len(points)):
-            points[i].X -= minx
-            points[i].Y -= miny
-        return minx, miny, points
 
     def store_pickled(self):
         filename = LidarDatasetNormXYZRGBAngle.getserializedfilename(self.path)
@@ -146,6 +130,44 @@ class LidarDatasetNormXYZRGBAngle:
     def getpath(serialized_filename):
         fname = os.path.basename(serialized_filename)
         return fname.replace('_k_k_', '/').replace('___', ':')
+
+    def normalize_points(self, points):
+        minx, miny = 10000000000000, 100000000000
+
+        for i in range(len(points)):
+            if points[i].X < minx: minx = points[i].X
+            if points[i].Y < miny: miny = points[i].Y
+
+        for i in range(len(points)):
+            points[i].X -= minx
+            points[i].Y -= miny
+        return minx, miny, points
+
+
+class LidarDatasetNormXYZRGBAngle:
+
+    def __init__(self, points, minx, miny):
+        '''
+        points = (list of LidarPointXYZRGBAngle),
+        minx, miny are min coords in original dataset
+        '''
+
+        self.points = points
+        pts2d = [(p.X, p.Y) for p in self.points]
+        self.kdtree = KDTree(np.array(pts2d))
+        self.minx = minx
+        self.miny = miny
+
+    def find_neighbours(self, point, R): # point = (x,y) tuple
+        all_nn_indices = self.kdtree.query_radius([point], r=R)
+        nn_indices = [[idx for idx in nn_indices] for nn_indices in all_nn_indices]
+        return nn_indices[0]
+
+    def find_closest_neighbour(self, point): # point = (x,y) tuple
+        nearest_dist, nearest_ind = self.kdtree.query([point], k=1)
+        return nearest_ind[0][0]
+
+
 
 class PointSetNormalized:
 
