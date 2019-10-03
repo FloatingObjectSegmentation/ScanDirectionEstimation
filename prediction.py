@@ -18,7 +18,7 @@ augmentable_folder_swath_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augm
 augmentable_folder_airplane_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables_scantraces_solutions'
 lidar_folder = 'E:/workspaces/LIDAR_WORKSPACE/lidar'
 prediction_dump_path = 'E:/workspaces/LIDAR_WORKSPACE/preds.bin'
-swathspan = [3000, 3500, 4000, 4500, 5000, 5500, 6000]
+swathspan = [2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
 
 class Result:
     def __init__(self, datasetname, index, position, airplane_dir, derivdirs, houghdirs, bmpspan):
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         dataset = common.RawLidarDatasetNormXYZRGBAngle(lidar_folder, name)
         augs = common.AugmentableSet(augmentable_folder_swath_sols, name)
 
-        partition = list(common.partition_list(augs.augmentables, 8))
+        partition = list(common.partition_list(augs.augmentables, 4))
 
         results = []
         for chunk in partition:
@@ -124,10 +124,6 @@ if __name__ == '__main__':
             p[1].join()
             p[2].join()
             p[3].join()
-            p[4].join()
-            p[5].join()
-            p[6].join()
-            p[7].join()
 
             for i in range(len(w)):
                 results.append(w[i].result)
@@ -137,6 +133,8 @@ if __name__ == '__main__':
 
             end = time.time()
             print("Time taken: " + str(end - start))
+
+            exit(0)
 
         predictions[name] = results
         pickle.dump(predictions, open(prediction_dump_path, 'wb'))

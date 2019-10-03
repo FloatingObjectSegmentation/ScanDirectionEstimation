@@ -116,7 +116,7 @@ class RawLidarDatasetNormXYZRGBAngle:
         return nearest_ind[0][0]
 
     def store_pickled(self):
-        filename = LidarDatasetNormXYZRGBAngle.getserializedfilename(self.path)
+        filename = RawLidarDatasetNormXYZRGBAngle.getserializedfilename(self.path)
         print(filename)
         pickle.dump((self.path, self.minx, self.miny, self.points, self.kdtree), open(filename, 'wb'))
 

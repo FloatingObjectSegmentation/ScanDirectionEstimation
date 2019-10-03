@@ -81,6 +81,8 @@ class AirplanePropertiesEstimation:
         if self.do_visualization:
             common.Visualization().visualize_points([p_min, p_max], S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
 
+        # need to determine actual correct direction
+
 
         # from p_min and p_max now compute dist, scan_direction and height x
         dist = math.sqrt(((p_max[0] - p_min[0]) ** 2) + ((p_max[1] - p_min[1]) ** 2))
