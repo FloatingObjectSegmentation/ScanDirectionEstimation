@@ -271,37 +271,37 @@ class HoughTransform:
         pixels = img.load()  # create the pixel map
         for i in range(Y.shape[0]):
             for j in range(Y.shape[1]):
-                red, green, blue = 0,0,0
+                red, green, blue = 0, 0, 0
                 angle = Y[i, j]
-                if angle < 8:
+                if angle % 8 == 0:
                     red = 0
                     green = 0
                     blue = 0
-                elif angle < 15:
+                elif angle % 8 == 1:
                     red = 255
                     green = 0
                     blue = 0
-                elif angle < 22:
+                elif angle % 8 == 2:
                     red = 0
                     green = 255
                     blue = 0
-                elif angle < 29:
+                elif angle % 8 == 3:
                     red = 0
                     green = 0
                     blue = 255
-                elif angle < 37:
+                elif angle % 8 == 4:
                     red = 255
                     green = 255
                     blue = 0
-                elif angle < 45:
+                elif angle % 8 == 5:
                     red = 255
                     green = 0
                     blue = 255
-                elif angle < 53:
+                elif angle % 8 == 6:
                     red = 0
                     green = 255
                     blue = 255
-                elif angle < 61:
+                elif angle % 8 == 7:
                     red = 255
                     green = 255
                     blue = 255
