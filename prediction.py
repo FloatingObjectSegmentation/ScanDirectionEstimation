@@ -121,7 +121,7 @@ def predict_parallel(name ,predictions):
 
             # verify if it is already processed
             do_work = True
-            if len(predictions[name]) >= i + 1 and predictions[name][i].position != []:
+            if len(predictions[name]) >= i + 1 and predictions[name][i] != [] and predictions[name][i].position != []:
                 do_work = False
 
             wrk = OneAugmentableWork(name=name, dataset=data, aug=chunk[i], i=chunk[i].idx, do_work=do_work)
@@ -134,10 +134,8 @@ def predict_parallel(name ,predictions):
             p[i].start()
 
         print('joining procs')
-        p[0].join()
-        p[1].join()
-        p[2].join()
-        p[3].join()
+        for i in range(len(p)):
+            p[i].join()
 
         for i in range(len(w)):
             results.append(w[i].result)
@@ -167,7 +165,9 @@ if __name__ == '__main__':
     names.sort()
 
     for name in names:
-        predict(name, predictions)
+        predict_parallel(name, predictions)
+        break
+
 
 
 
@@ -199,6 +199,7 @@ if __name__ == '__main__':
                 minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
                 preds1.append(minangle)
             D_pred.houghpreds = preds1
+            print(preds1)
 
             # deriv
             preds2 = []
@@ -206,10 +207,12 @@ if __name__ == '__main__':
                 minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
                 preds2.append(minangle)
             D_pred.derivpreds = preds2
+            print(preds2)
 
             # plane
             minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
             D_pred.airplanepred = minangle
+            print(minangle)
 
 
 
