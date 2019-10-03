@@ -62,18 +62,18 @@ class OneAugmentableWork:
         self.i = i
         self.do_work = do_work
 
-    def work(self, threadindex=-1):
+    def work(self, threadindex=-1, queue=multiprocessing.Queue()):
         print('start work' + str(threadindex))
         if self.do_work == False:
-            self.result = Result(name, i, [], [], [], [], [])
+            queue.put(Result(name, i, [], [], [], [], []))
             return
         try:
             pos, ortho_dir, derivdirs, houghdirs = self.method.run(dataset=self.dataset, augmentable=self.aug)
-            self.result = Result(self.name, self.i, pos, ortho_dir, derivdirs, houghdirs, swathspan)
+            queue.put(Result(self.name, self.i, pos, ortho_dir, derivdirs, houghdirs, swathspan))
         except:
             # store index of augmentable to later view where something went wrong
             print('something went wrong')
-            self.result = Result(self.name, i, [], [], [], [], [])
+            queue.put(Result(self.name, i, [], [], [], [], []))
         print('finish work' + str(threadindex))
 
 ############################################################################
@@ -111,7 +111,7 @@ def predict_parallel(name ,predictions):
 
         start = time.time()
 
-        w, p = [], []
+        w, p, qs = [], [], []
         for i in range(len(chunk)):
 
             # prepare
@@ -124,10 +124,13 @@ def predict_parallel(name ,predictions):
             if len(predictions[name]) >= i + 1 and predictions[name][i] != [] and predictions[name][i].position != []:
                 do_work = False
 
+
+            q = multiprocessing.Queue()
             wrk = OneAugmentableWork(name=name, dataset=data, aug=chunk[i], i=chunk[i].idx, do_work=do_work)
             w.append(wrk)
-            thr = multiprocessing.Process(target=wrk.work, args=(i,))
+            thr = multiprocessing.Process(target=wrk.work, args=(i,q))
             p.append(thr)
+            qs.append(q)
 
         print('starting procs')
         for i in range(len(p)):
@@ -138,7 +141,7 @@ def predict_parallel(name ,predictions):
             p[i].join()
 
         for i in range(len(w)):
-            results.append(w[i].result)
+            results.append(qs[i].get())
 
         # for r in results:
         #    r.printresult()
