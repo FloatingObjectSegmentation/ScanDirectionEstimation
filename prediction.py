@@ -18,7 +18,7 @@ augmentable_folder_swath_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augm
 augmentable_folder_airplane_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables_scantraces_solutions'
 lidar_folder = 'E:/workspaces/LIDAR_WORKSPACE/lidar'
 prediction_dump_path = 'E:/workspaces/LIDAR_WORKSPACE/preds.bin'
-swathspan = [2000] #, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
+swathspan = [2000, 3000, 4000, 5000] #, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
 
 ############################################################################
 ## AUGMENTABLE LEVEL LOGIC
@@ -42,14 +42,14 @@ class Result:
 def angle_between_vectors(u, v): # should be [xu,yu], [xv, yv]
     u = np.array(u)
     v = np.array(v)
-    dotprod = u.dot(v) / np.sqrt(u.dot(v)) * np.sqrt(u.dot(v))
+    dotprod = u.dot(v) / (np.sqrt(u.dot(u)) * np.sqrt(v.dot(v)))
     angle = math.acos(dotprod)
     if (angle > math.pi / 2):
         u = -u
-        dotprod = u.dot(v) / np.sqrt(u.dot(u)) * np.sqrt(v.dot(v))
+        dotprod = u.dot(v) / (np.sqrt(u.dot(u)) * np.sqrt(v.dot(v)))
         angle = math.acos(dotprod)
-        return angle
-    return angle
+        return angle * 180 / math.pi
+    return angle * 180 / math.pi
 
 class OneAugmentableWork:
 
@@ -65,7 +65,7 @@ class OneAugmentableWork:
     def work(self, threadindex=-1, queue=multiprocessing.Queue()):
         print('start work' + str(threadindex))
         if self.do_work == False:
-            queue.put(Result(name, i, [], [], [], [], []))
+            queue.put(Result(self.name, self.i, [], [], [], [], []))
             return
         try:
             pos, ortho_dir, derivdirs, houghdirs = self.method.run(dataset=self.dataset, augmentable=self.aug)
@@ -73,7 +73,7 @@ class OneAugmentableWork:
         except:
             # store index of augmentable to later view where something went wrong
             print('something went wrong')
-            queue.put(Result(self.name, i, [], [], [], [], []))
+            queue.put(Result(self.name, self.i, [], [], [], [], []))
         print('finish work' + str(threadindex))
 
 ############################################################################
@@ -172,16 +172,6 @@ if __name__ == '__main__':
         break
 
 
-
-
-
-
-
-
-
-
-
-
     # predictions[dataset] -> list(Result) ->
 
     # compare predictions with ground truth
@@ -198,6 +188,25 @@ if __name__ == '__main__':
 
             # hough
             preds1 = []
+
+            # change hough predictions into actual directions
+            D_pred.houghdirs = [d[0] for d in D_pred.houghdirs]
+            D_pred.houghdirs = [np.array(d[0]) - np.array(d[1]) for d in D_pred.houghdirs]
+
+            # change deriv predictions into actual directions
+            D_pred.derivdirs = [d[0] for d in D_pred.derivdirs]
+            D_pred.derivdirs = [np.array(d[0]) - np.array(d[1]) for d in D_pred.derivdirs]
+
+            # change airplane predictions into actual direction
+            D_pred.airplane_dir = np.array(D_pred.airplane_dir[0]) - np.array(D_pred.airplane_dir[1])
+
+            # change swath labels to actual directions
+            D_swath = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_swath, 2)]
+
+            # change airplane labels to actual directions
+            D_swath = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
+
+
             for p_dir in D_pred.houghdirs:
                 minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
                 preds1.append(minangle)
