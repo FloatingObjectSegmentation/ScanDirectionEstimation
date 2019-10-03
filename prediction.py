@@ -167,7 +167,7 @@ if __name__ == '__main__':
     names.sort()
 
     for name in names:
-        predict_parallel(name, predictions)
+        predict(name, predictions)
 
 
 

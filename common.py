@@ -354,13 +354,13 @@ class Visualization:
 
 
     def visualize(self, points:PointSet, minx, miny, maxx, maxy, bmpsize):
-        G = Visualization.transform_points_to_bmp_with_bounds(points, bmpsize, minx, maxx, miny, maxy)
-        HoughTransform.visualize_matrix(G)
+        G = Visualization().transform_points_to_bmp_with_bounds(points, bmpsize, minx, maxx, miny, maxy)
+        HoughTransform().visualize_matrix(G)
 
 
     def visualize_points(self, points, minx, miny, maxx, maxy, bmpsize):
-        G = Visualization.transform_rawpoints_to_bmp_with_bounds(points, bmpsize, minx, maxx, miny, maxy)
-        HoughTransform.visualize_matrix(G)
+        G = Visualization().transform_rawpoints_to_bmp_with_bounds(points, bmpsize, minx, maxx, miny, maxy)
+        HoughTransform().visualize_matrix(G)
 
 
     def transform_dataset_to_scananglebmp(self, dataset: LidarDatasetNormXYZRGBAngle, bmpsize):
