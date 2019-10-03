@@ -73,6 +73,63 @@ class OneAugmentableWork:
         print('finish work' + str(threadindex))
 
 
+def predict(name, predictions):
+    pass
+def predict_parallel(name ,predictions):
+
+    print('processing ' + name)
+    dataset = common.RawLidarDatasetNormXYZRGBAngle(lidar_folder, name)
+    augs = common.AugmentableSet(augmentable_folder_swath_sols, name)
+
+    partition = list(common.partition_list(augs.augmentables, 4))
+
+    results = []
+    for chunk in partition:
+
+        start = time.time()
+
+        w, p = [], []
+        for i in range(len(chunk)):
+
+            # prepare
+            x, y = chunk[i].location[0] - dataset.minx, chunk[i].location[1] - dataset.miny
+            nbrs = dataset.find_neighbours_pointset((x, y), 50.0)
+            data = common.LidarDatasetNormXYZRGBAngle(nbrs, dataset.minx, dataset.miny)
+
+            # verify if it is already processed
+            do_work = True
+            if len(predictions[name]) >= i + 1 and predictions[name][i].position != []:
+                do_work = False
+
+            wrk = OneAugmentableWork(name=name, dataset=data, aug=chunk[i], i=chunk[i].idx, do_work=do_work)
+            w.append(wrk)
+            thr = multiprocessing.Process(target=wrk.work, args=(i,))
+            p.append(thr)
+
+        print('starting procs')
+        for i in range(len(p)):
+            p[i].start()
+
+        print('joining procs')
+        p[0].join()
+        p[1].join()
+        p[2].join()
+        p[3].join()
+
+        for i in range(len(w)):
+            results.append(w[i].result)
+
+        # for r in results:
+        #    r.printresult()
+
+        end = time.time()
+        print("Time taken: " + str(end - start))
+
+        exit(0)
+
+    predictions[name] = results
+    pickle.dump(predictions, open(prediction_dump_path, 'wb'))
+
 if __name__ == '__main__':
     # first compute the predictions
     predictions = defaultdict(list)
@@ -85,59 +142,8 @@ if __name__ == '__main__':
     names.sort()
 
     for name in names:
+        predict_parallel(name, predictions)
 
-        print('processing ' + name)
-        dataset = common.RawLidarDatasetNormXYZRGBAngle(lidar_folder, name)
-        augs = common.AugmentableSet(augmentable_folder_swath_sols, name)
-
-        partition = list(common.partition_list(augs.augmentables, 4))
-
-        results = []
-        for chunk in partition:
-
-            start = time.time()
-
-            w, p = [], []
-            for i in range(len(chunk)):
-
-                # prepare
-                x, y = chunk[i].location[0] - dataset.minx, chunk[i].location[1] - dataset.miny
-                nbrs = dataset.find_neighbours_pointset((x,y), 50.0)
-                data = common.LidarDatasetNormXYZRGBAngle(nbrs, dataset.minx, dataset.miny)
-
-                # verify if it is already processed
-                do_work = True
-                if len(predictions[name]) >= i + 1 and predictions[name][i].position != []:
-                    do_work = False
-
-                wrk = OneAugmentableWork(name=name, dataset=data, aug=chunk[i], i=chunk[i].idx, do_work=do_work)
-                w.append(wrk)
-                thr = multiprocessing.Process(target=wrk.work, args=(i,))
-                p.append(thr)
-
-            print('starting procs')
-            for i in range(len(p)):
-                p[i].start()
-
-            print('joining procs')
-            p[0].join()
-            p[1].join()
-            p[2].join()
-            p[3].join()
-
-            for i in range(len(w)):
-                results.append(w[i].result)
-
-            #for r in results:
-            #    r.printresult()
-
-            end = time.time()
-            print("Time taken: " + str(end - start))
-
-            exit(0)
-
-        predictions[name] = results
-        pickle.dump(predictions, open(prediction_dump_path, 'wb'))
 
 
 
