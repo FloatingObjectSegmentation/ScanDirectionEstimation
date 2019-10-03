@@ -471,3 +471,8 @@ def get_dataset_names(lidar_folder):
     pattern = '[0-9]{3}[_]{1}[0-9]{2,3}'
     dataset_names = list(set([x.group(0) for x in [re.search(pattern, match, flags=0) for match in files] if x != None]))
     return dataset_names
+
+def partition_list(l, n):
+    """Yield successive n-sized chunks from l."""
+    for i in range(0, len(l), n):
+        yield l[i:i + n]

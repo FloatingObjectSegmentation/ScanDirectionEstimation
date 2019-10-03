@@ -29,6 +29,11 @@ class Result:
         self.houghdirs = houghdirs
         self.bmpspan = bmpspan
 
+    def printresult(self):
+        print(self.datasetname + ' ' + str(self.index) + ' ' + str(self.position) + ' airplanedir: ' + str(self.airplane_dir))
+        print('derivdirs: ' + str(self.derivdirs))
+        print('houghdirs: ' + str(self.houghdirs))
+
 def angle_between_vectors(u, v): # should be [xu,yu], [xv, yv]
     u = np.array(u)
     v = np.array(v)
@@ -41,6 +46,29 @@ def angle_between_vectors(u, v): # should be [xu,yu], [xv, yv]
         return angle
     return angle
 
+class OneAugmentableWork:
+
+    def __init__(self, name, dataset, aug, i):
+        self.method = m_airplaneprops.AirplanePropertiesEstimation(bmpsize_full_dataset=4000, bmpswathspan=swathspan)
+        self.result = []
+        self.name = name
+        self.dataset = dataset
+        self.aug = aug
+        self.i = i
+
+    def work(self, threadindex=-1):
+        print('start work' + str(threadindex))
+        if len(predictions[name]) >= self.i + 1 and predictions[name][self.i].position != []:
+            self.result = None
+
+        try:
+            pos, ortho_dir, derivdirs, houghdirs = self.method.run(dataset=self.dataset, augmentable=self.aug)
+            self.result = Result(self.name, self.i, pos, ortho_dir, derivdirs, houghdirs, swathspan)
+        except:
+            # store index of augmentable to later view where something went wrong
+            print('something went wrong')
+            self.result = Result(name, i, [], [], [], [], [])
+        print('finish work' + str(threadindex))
 
 # first compute the predictions
 predictions = defaultdict(list)
@@ -50,40 +78,59 @@ except:
     pass
 
 names = common.get_dataset_names(lidar_folder)
+names.sort()
+
 for name in names:
 
     print('processing ' + name)
     dataset = common.LidarDatasetNormXYZRGBAngle(lidar_folder, name)
-    augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
-    augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name)
+    augs = common.AugmentableSet(augmentable_folder_swath_sols, name)
 
-    method = m_airplaneprops.AirplanePropertiesEstimation(bmpsize_full_dataset=4000, bmpswathspan=swathspan)
-
-
+    partition = list(common.partition_list(augs.augmentables, 5))
 
     results = []
-    for i, aug in enumerate(augs_swath.augmentables):
+    for chunk in partition:
 
         start = time.time()
+        w0 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[0], i=chunk[0].idx)
+        w1 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[1], i=chunk[1].idx)
+        w2 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[2], i=chunk[2].idx)
+        w3 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[3], i=chunk[3].idx)
+        w4 = OneAugmentableWork(name=name, dataset=dataset, aug=chunk[4], i=chunk[4].idx)
 
-        if len(predictions[name]) >= i + 1 and predictions[name][i].position != []:
-            continue # case already solved
+        t0 = threading.Thread(target=w0.work, args=(0,))
+        t1 = threading.Thread(target=w1.work, args=(1,))
+        t2 = threading.Thread(target=w2.work, args=(2,))
+        t3 = threading.Thread(target=w3.work, args=(3,))
+        t4 = threading.Thread(target=w4.work, args=(4,))
 
-        try:
-            pos, ortho_dir, derivdirs, houghdirs = method.run(dataset=dataset, augmentable=aug)
-            res = Result(name, i, pos, ortho_dir, derivdirs, houghdirs, swathspan)
-            results.append(res)
-            print('OK')
-        except:
-            # store index of augmentable to later view where something went wrong
-            print('something went wrong')
-            res = Result(name, i, [], [], [], [], [])
-            results.append(res)
+        t0.start()
+        t1.start()
+        t2.start()
+        t3.start()
+        t4.start()
+
+        t0.join()
+        t1.join()
+        t2.join()
+        t3.join()
+        t4.join()
+
+        results.append(w0.result)
+        results.append(w1.result)
+        results.append(w2.result)
+        results.append(w3.result)
+        results.append(w4.result)
+
+        for r in results:
+            r.printresult()
 
         end = time.time()
         print("Time taken: " + str(end - start))
+
     predictions[name] = results
     pickle.dump(predictions, open(prediction_dump_path, 'wb'))
+
 
 # predictions[dataset] -> list(Result) ->
 
