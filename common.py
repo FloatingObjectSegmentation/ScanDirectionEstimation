@@ -46,10 +46,10 @@ class Augmentable:
 
 class AugmentableSet:
 
-    def __init__(self, folder, name):
+    def __init__(self, folder, name, appendix='augmentation_result_transformed_airplane_heights.txt'):
         self.name = name
         self.folder = folder
-        self.path = self.folder + '//' + self.name + 'augmentation_result_transformed_airplane_heights.txt'
+        self.path = self.folder + '//' + self.name + appendix
         self.augmentables = []
         lines = open(self.path, 'r').readlines()
         for line in lines:

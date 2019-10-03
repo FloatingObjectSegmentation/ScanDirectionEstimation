@@ -15,10 +15,10 @@ import common
 # config
 testone = False
 augmentable_folder_swath_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables_scantraces_solutions'
-augmentable_folder_airplane_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables_scantraces_solutions'
+augmentable_folder_airplane_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables_airways_solutions'
 lidar_folder = 'E:/workspaces/LIDAR_WORKSPACE/lidar'
 prediction_dump_path = 'E:/workspaces/LIDAR_WORKSPACE/preds.bin'
-swathspan = [2000, 3000, 4000, 5000] #, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
+swathspan = [2000, 3000, 4000, 5000, 6000] #, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
 
 ############################################################################
 ## AUGMENTABLE LEVEL LOGIC
@@ -167,27 +167,25 @@ if __name__ == '__main__':
     names = common.get_dataset_names(lidar_folder)
     names.sort()
 
-    for name in names:
-        predict_parallel(name, predictions)
-        break
+    #for name in names:
+    #    predict_parallel(name, predictions)
+    #    break
 
 
-    # predictions[dataset] -> list(Result) ->
+
+
+
 
     # compare predictions with ground truth
     for name in names:
 
-        augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
-        augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name)
         preds = predictions[name]
+        augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
 
+        # UNWRAP PREDICTIONS CORRECTLY
         for i, x in enumerate(augs_swath.augmentables):
-            D_swath = x.directions
-            D_plane = augs_plane.augmentables[i].directions
-            D_pred = preds[i]
 
-            # hough
-            preds1 = []
+            D_pred = preds[i]
 
             # change hough predictions into actual directions
             D_pred.houghdirs = [d[0] for d in D_pred.houghdirs]
@@ -198,15 +196,23 @@ if __name__ == '__main__':
             D_pred.derivdirs = [np.array(d[0]) - np.array(d[1]) for d in D_pred.derivdirs]
 
             # change airplane predictions into actual direction
-            D_pred.airplane_dir = np.array(D_pred.airplane_dir[0]) - np.array(D_pred.airplane_dir[1])
+            try:
+                D_pred.airplane_dir = np.array(D_pred.airplane_dir[0]) - np.array(D_pred.airplane_dir[1])
+            except:
+                pass
+
+
+        # SWATH ANGLES
+        for i, x in enumerate(augs_swath.augmentables):
+
+            D_swath = x.directions
+            D_pred = preds[i]
 
             # change swath labels to actual directions
             D_swath = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_swath, 2)]
 
-            # change airplane labels to actual directions
-            D_swath = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
-
-
+            # hough
+            preds1 = []
             for p_dir in D_pred.houghdirs:
                 minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
                 preds1.append(minangle)
@@ -220,6 +226,20 @@ if __name__ == '__main__':
                 preds2.append(minangle)
             D_pred.derivpreds = preds2
             print(preds2)
+            print()
+
+
+
+        # AIRPLANE ANGLES
+        augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name,
+                                           appendix='augmentation_result_transformed.txt')
+        for i, x in enumerate(augs_plane.augmentables):
+
+            D_plane = x.directions
+            D_pred = preds[i]
+
+            # change airplane labels to actual directions
+            D_swath = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
 
             # plane
             minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
