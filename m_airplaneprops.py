@@ -87,14 +87,20 @@ class AirplanePropertiesEstimation:
         if self.do_visualization:
             common.Visualization().visualize_points([p_min, p_max], S_whole.minx, S_whole.miny, S_whole.maxx, S_whole.maxy, bmpsizenbrs)
 
-        # need to determine actual correct direction
-
-
         # from p_min and p_max now compute dist, scan_direction and height x
         dist = math.sqrt(((p_max[0] - p_min[0]) ** 2) + ((p_max[1] - p_min[1]) ** 2))
         scan_direction = np.array([p_max[0] - p_min[0], p_max[1] - p_min[1]])
         scan_direction = scan_direction / np.linalg.norm(scan_direction)
         height = self.height_at_degree(angle=minptalpha, dist=dist)
+
+
+        # need to determine actual correct direction
+        way_vector = np.cross(np.array([scan_direction[0] , scan_direction[1], 0.0]), np.array([0.0,0.0,1.0]))
+        way_vector = way_vector[:2]
+        if self.do_visualization:
+            a = p_max + 20 * way_vector[:2]
+            common.Visualization().visualize_points([p_max, a], S_whole.minx, S_whole.miny, S_whole.maxx,
+                                                    S_whole.maxy, bmpsizenbrs)
 
 
         # Interpolate the true scan angle
