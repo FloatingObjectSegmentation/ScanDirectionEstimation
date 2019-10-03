@@ -18,7 +18,7 @@ augmentable_folder_swath_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augm
 augmentable_folder_airplane_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables_scantraces_solutions'
 lidar_folder = 'E:/workspaces/LIDAR_WORKSPACE/lidar'
 prediction_dump_path = 'E:/workspaces/LIDAR_WORKSPACE/preds.bin'
-swathspan = [2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
+swathspan = [2000] #, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
 
 ############################################################################
 ## AUGMENTABLE LEVEL LOGIC
@@ -148,8 +148,6 @@ def predict_parallel(name ,predictions):
         end = time.time()
         print("Time taken: " + str(end - start))
 
-        exit(0)
-
     predictions[name] = results
     pickle.dump(predictions, open(prediction_dump_path, 'wb'))
 
@@ -169,7 +167,7 @@ if __name__ == '__main__':
     names.sort()
 
     for name in names:
-        predict(name, predictions)
+        predict_parallel(name, predictions)
 
 
 

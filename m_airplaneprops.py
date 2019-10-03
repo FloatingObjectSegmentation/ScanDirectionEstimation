@@ -14,6 +14,7 @@ class AirplanePropertiesEstimation:
         self.bmpswathspan = bmpswathspan
         self.do_visualization = do_visualization
         self.verbose = verbose
+        self.default_height = 1400.0
 
     # not that dataset is already in normalized space and augmentable in in original point cloud space!
     def run(self, dataset: common.LidarDatasetNormXYZRGBAngle, augmentable: common.Augmentable):
@@ -30,8 +31,8 @@ class AirplanePropertiesEstimation:
 
 
         # compute params
-        R = 2.5 * self.length_of_one_degree(minptalpha, 1400.0) / 2
-        bmpsizenbrs = int(self.bmpsize_full_dataset / 1400 * R)
+        R = 2.5 * self.length_of_one_degree(minptalpha, self.default_height) / 2
+        bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
 
 
         self.printifverbose("Finding airplane properties")
@@ -44,6 +45,11 @@ class AirplanePropertiesEstimation:
 
         # Find out whether both neighboring degrees are present
         angles = set([p.scan_angle for p in S_whole.points])
+
+        if len(list(angles)) < 2:
+            print('OMFGGGGGG FUCKING PROBLEEEEEEEEEEEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print('UNIQUE ANGLES IN S_WHOLE:' + str(angles))
+
         hasbothangles = minptalpha - 1 in angles and minptalpha + 1 in angles
         if not hasbothangles:
             # select new point from the neighboring angle
@@ -56,7 +62,7 @@ class AirplanePropertiesEstimation:
             minptalpha = p.scan_angle
 
             # compute new S_whole around it and params (because neighboring degree to alpha-1 may not be contained in old S_whole)
-            R = 2.5 * self.length_of_one_degree(minptalpha, 1000.0) / 2
+            R = 2.5 * self.length_of_one_degree(minptalpha, self.default_height) / 2
             bmpsizenbrs = int(self.bmpsize_full_dataset / 1000 * R)
             nbr_indices = dataset.find_neighbours(aug_loc, R=R)
             S_whole = common.PointSet([dataset.points[i] for i in nbr_indices])
@@ -137,7 +143,7 @@ class AirplanePropertiesEstimation:
         for bmpsize in self.bmpswathspan:
 
             self.printifverbose("For bmpsize=" + str(bmpsize))
-            R = 2.5 * self.length_of_one_degree(minptalpha, 1000.0) / 2
+            R = 2.5 * self.length_of_one_degree(minptalpha, self.default_height) / 2
             bmpsizenbrs = int(bmpsize / 1000 * R)
             self.printifverbose("Using derivative")
             scan_direction_derivative = m_derivative.DerivativeMethod().scan_direction_derivative(S_whole, minptalpha, bmpsizenbrs)
