@@ -34,6 +34,11 @@ class Result:
         self.houghdirs = houghdirs
         self.bmpspan = bmpspan
 
+        self.houghpreds = []
+        self.derivpreds = []
+        self.airplanepred = -1
+        self.airplanepred_swath = -1
+
     def printresult(self):
         print(self.datasetname + ' ' + str(self.index) + ' ' + str(self.position) + ' airplanedir: ' + str(self.airplane_dir))
         print('derivdirs: ' + str(self.derivdirs))
@@ -50,6 +55,7 @@ def angle_between_vectors(u, v): # should be [xu,yu], [xv, yv]
         angle = math.acos(dotprod)
         return angle * 180 / math.pi
     return angle * 180 / math.pi
+
 
 class OneAugmentableWork:
 
@@ -104,7 +110,7 @@ def predict_parallel(name ,predictions):
     dataset = common.RawLidarDatasetNormXYZRGBAngle(lidar_folder, name)
     augs = common.AugmentableSet(augmentable_folder_swath_sols, name)
 
-    partition = list(common.partition_list(augs.augmentables, 4))
+    partition = list(common.partition_list(augs.augmentables, 6))
 
     results = []
     for chunk in partition:
@@ -121,7 +127,8 @@ def predict_parallel(name ,predictions):
 
             # verify if it is already processed
             do_work = True
-            if len(predictions[name]) >= i + 1 and predictions[name][i] != [] and predictions[name][i].position != []:
+            if name in predictions.keys() and len(predictions[name]) >= i + 1 and predictions[name][i] != [] and predictions[name][i].position != []:
+                print('will not do work')
                 do_work = False
 
 
@@ -167,9 +174,9 @@ if __name__ == '__main__':
     names = common.get_dataset_names(lidar_folder)
     names.sort()
 
-    #for name in names:
-    #    predict_parallel(name, predictions)
-    #    break
+    for name in names:
+        predict_parallel(name, predictions)
+        break
 
 
 
@@ -178,6 +185,7 @@ if __name__ == '__main__':
 
     # compare predictions with ground truth
     for name in names:
+        print(name)
 
         preds = predictions[name]
         augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
@@ -186,6 +194,8 @@ if __name__ == '__main__':
         for i, x in enumerate(augs_swath.augmentables):
 
             D_pred = preds[i]
+            if D_pred.airplane_dir == []:
+                continue
 
             # change hough predictions into actual directions
             D_pred.houghdirs = [d[0] for d in D_pred.houghdirs]
@@ -207,6 +217,8 @@ if __name__ == '__main__':
 
             D_swath = x.directions
             D_pred = preds[i]
+            if D_pred.airplane_dir == []:
+                continue
 
             # change swath labels to actual directions
             D_swath = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_swath, 2)]
@@ -230,21 +242,53 @@ if __name__ == '__main__':
 
 
 
-        # AIRPLANE ANGLES
-        augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name,
-                                           appendix='augmentation_result_transformed.txt')
-        for i, x in enumerate(augs_plane.augmentables):
+        # AIRPLANE ANGLES SWATH
+        #augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name,
+        #                                  appendix='augmentation_result_transformed.txt')
+        for i, x in enumerate(augs_swath.augmentables):
 
             D_plane = x.directions
             D_pred = preds[i]
+            if D_pred.airplane_dir == []:
+                continue
 
             # change airplane labels to actual directions
-            D_swath = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
+            D_plane = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
+
+            # plane
+            minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
+            D_pred.airplanepred_swath = minangle
+            print(minangle)
+
+
+        # AIRPLANE ANGLES
+        try:
+            augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name,
+                                          appendix='augmentation_result_transformed.txt')
+        except:
+            continue
+
+        for i in range(len(augs_swath.augmentables)):
+
+            D_pred = preds[i]
+            if D_pred.airplane_dir == []:
+                continue
+
+            D_plane = augs_swath.augmentables[i].directions
+            D_plane = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
+
+            if i > 0:
+
+                D_planeprev = augs_swath.augmentables[i - 1].directions
+                D_planeprev = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_planeprev, 2)]
+
+                if all([x[0] == y[0] and x[1] == y[1] for x,y in zip(D_plane, D_planeprev)]):
+                    continue
 
             # plane
             minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
             D_pred.airplanepred = minangle
             print(minangle)
 
-
+        break
 
