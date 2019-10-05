@@ -184,8 +184,10 @@ if __name__ == '__main__':
     names = common.get_dataset_names(lidar_folder)
     names.sort()
 
-    #for name in names:
-     #   predict_parallel(name, predictions)
+   # for name in names:
+       # if name in predictions.keys():
+        #    continue
+        #predict_parallel(name, predictions)
 
 
 
@@ -204,7 +206,7 @@ if __name__ == '__main__':
         preds = predictions[name]
         augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
 
-        # UNWRAP PREDICTIONS CORRECTLY
+        # # UNWRAP PREDICTIONS CORRECTLY
         for i, x in enumerate(augs_swath.augmentables):
 
             D_pred = preds[i]
@@ -226,83 +228,83 @@ if __name__ == '__main__':
                 pass
 
 
-        # SWATH ANGLES
-        for i, x in enumerate(augs_swath.augmentables):
-
-            D_swath = x.directions
-            D_pred = preds[i]
-            if D_pred.airplane_dir == []:
-                continue
-
-            # change swath labels to actual directions
-            D_swath = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_swath, 2)]
-
-            # hough
-            preds1 = []
-            for p_dir in D_pred.houghdirs:
-                minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
-                preds1.append(minangle)
-            D_pred.houghpreds = preds1
-            print(preds1)
-
-            # deriv
-            preds2 = []
-            for p_dir in D_pred.derivdirs:
-                minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
-                preds2.append(minangle)
-            D_pred.derivpreds = preds2
-            print(preds2)
-            print()
-
-
-
-        # AIRPLANE ANGLES SWATH
-        #augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name,
-        #                                  appendix='augmentation_result_transformed.txt')
-        for i, x in enumerate(augs_swath.augmentables):
-
-            D_plane = x.directions
-            D_pred = preds[i]
-            if D_pred.airplane_dir == []:
-                continue
-
-            # change airplane labels to actual directions
-            D_plane = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
-
-            # plane
-            minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
-            D_pred.airplanepred_swath = minangle
-            print(minangle)
-
-
-        # #AIRPLANE ANGLES
-        # try:
-        #     augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name,
-        #                                   appendix='augmentation_result_transformed.txt')
-        # except:
-        #     continue
+        # # SWATH ANGLES
+        # for i, x in enumerate(augs_swath.augmentables):
         #
-        # for i in range(len(augs_swath.augmentables)):
-        #
+        #     D_swath = x.directions
         #     D_pred = preds[i]
         #     if D_pred.airplane_dir == []:
         #         continue
         #
-        #     D_plane = augs_swath.augmentables[i].directions
+        #     # change swath labels to actual directions
+        #     D_swath = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_swath, 2)]
+        #
+        #     # hough
+        #     preds1 = []
+        #     for p_dir in D_pred.houghdirs:
+        #         minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
+        #         preds1.append(minangle)
+        #     D_pred.houghpreds = preds1
+        #     print(preds1)
+        #
+        #     # deriv
+        #     preds2 = []
+        #     for p_dir in D_pred.derivdirs:
+        #         minangle = min([angle_between_vectors(d, p_dir) for d in D_swath])
+        #         preds2.append(minangle)
+        #     D_pred.derivpreds = preds2
+        #     print(preds2)
+        #     print()
+
+
+
+        # # AIRPLANE ANGLES SWATH
+        # #augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name,
+        # #                                  appendix='augmentation_result_transformed.txt')
+        # for i, x in enumerate(augs_swath.augmentables):
+        #
+        #     D_plane = x.directions
+        #     D_pred = preds[i]
+        #     if D_pred.airplane_dir == []:
+        #         continue
+        #
+        #     # change airplane labels to actual directions
         #     D_plane = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
-        #
-        #     if i > 0:
-        #
-        #         D_planeprev = augs_swath.augmentables[i - 1].directions
-        #         D_planeprev = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_planeprev, 2)]
-        #
-        #         if all([x[0] == y[0] and x[1] == y[1] for x,y in zip(D_plane, D_planeprev)]):
-        #             continue
         #
         #     # plane
         #     minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
-        #     D_pred.airplanepred = minangle
+        #     D_pred.airplanepred_swath = minangle
         #     print(minangle)
+
+
+        #AIRPLANE ANGLES
+        try:
+            augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name,
+                                          appendix='augmentation_result_transformed.txt')
+        except:
+            continue
+
+        for i in range(len(augs_swath.augmentables)):
+
+            D_pred = preds[i]
+            if D_pred.airplane_dir == []:
+                continue
+
+            D_plane = augs_plane.augmentables[i].directions
+            D_plane = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
+
+            if i > 0:
+
+                D_planeprev = augs_plane.augmentables[i - 1].directions
+                D_planeprev = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_planeprev, 2)]
+
+                if all([x[0] == y[0] and x[1] == y[1] for x,y in zip(D_plane, D_planeprev)]):
+                    continue
+
+            # plane
+            minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
+            D_pred.airplanepred = minangle
+            print(90 - minangle)
 
 
     # PREDICTIONS TO LATEX TABLES
@@ -369,7 +371,7 @@ if __name__ == '__main__':
         avgderivbynames.append(np.min(np.array(avgderiv)))
         stdderivbynames.append(np.min(np.array(stdderiv)))
 
-        # main table
+        # #main table
         # line = a[0] + '\\_' + a[1] + ' & '
         # line += format(avgpred) + ' & '
         # line += format(stddevpred) + ' & '
@@ -381,21 +383,21 @@ if __name__ == '__main__':
         # print(line)
 
 
-        # hough table by bmpsize
-        line = a[0] + '\\_' + a[1] + ' & '
-        for i in range(len(avghough)):
-            line += format(avghough[i]) + ' & '
-        line = line[:-3] + '\\\\ \n'
-        line += '\\hline'
-        print(line)
-
-        # deriv table by bmpsize
+        #hough table by bmpsize
         # line = a[0] + '\\_' + a[1] + ' & '
-        # for i in range(len(avgderiv)):
-        #     line += format(avgderiv[i]) + ' & '
+        # for i in range(len(avghough)):
+        #     line += format(avghough[i]) + ' & '
         # line = line[:-3] + '\\\\ \n'
         # line += '\\hline'
         # print(line)
+
+        # deriv table by bmpsize
+        line = a[0] + '\\_' + a[1] + ' & '
+        for i in range(len(avgderiv)):
+            line += format(avgderiv[i]) + ' & '
+        line = line[:-3] + '\\\\ \n'
+        line += '\\hline'
+        print(line)
 
     # aggregate by names
     def avgbynames(array):
@@ -410,6 +412,3 @@ if __name__ == '__main__':
     line += avgbynames(stdderivbynames) + "\\\\ \n"
 
     print(line)
-
-
-

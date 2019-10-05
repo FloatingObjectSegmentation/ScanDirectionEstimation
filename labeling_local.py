@@ -51,6 +51,7 @@ def on_init():
     files = [lidar_folder + '\\' + f for f in os.listdir(lidar_folder)]
     pattern = '[0-9]{3}[_]{1}[0-9]{2,3}'
     dataset_names = list(set([x.group(0) for x in [re.search(pattern, match, flags=0) for match in files] if x != None]))
+    dataset_names.sort()
 
     all_bmps = []
     all_minx = []
@@ -182,6 +183,7 @@ class mainWindow():
             if self.index < len(self.dataset_names):
                 self.canvas.delete("all")
                 self.render_image_on_canvas_by_index_and_set_new_samples(self.index)
+                print(self.dataset_names[self.index])
         else:
             print("LABELING FINISHED")
 
