@@ -44,6 +44,20 @@ class Augmentable:
         directions = [Augmentable.vecStringToFloatLst(part) for part in parts[6:]]
         return Augmentable(idx, location, scale, type, airplane_pos, distance_from_floor, directions)
 
+    def toLine(self):
+        line = ''
+        line += str(self.idx) + ' '
+        line += ",".join(self.location) + ' '
+        line += ",".join(self.scale) + ' '
+        line += self.type + ' '
+        line += ",".join(self.airplane_pos) + ' '
+        line += str(self.distance_from_floor) + ' '
+        line += ' '.join([",".join(direction) for direction in self.directions])
+        return line
+
+
+
+
 class AugmentableSet:
 
     def __init__(self, folder, name, appendix='augmentation_result_transformed_airplane_heights.txt'):
@@ -56,6 +70,12 @@ class AugmentableSet:
             aug = Augmentable.fromLine(line)
             self.augmentables.append(aug)
 
+    def saveToFile(self, filepath):
+        lines = []
+        for aug in self.augmentables:
+            lines.append(aug.toLine())
+        content = '\n'.join(lines)
+        open(filepath, 'w').write(content)
 
 
 ## LIDAR DEFINITION

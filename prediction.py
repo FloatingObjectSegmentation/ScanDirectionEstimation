@@ -14,7 +14,7 @@ import common
 
 # config
 testone = False
-augmentable_folder_swath_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables_scantraces_solutions'
+augmentable_folder_swath_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables_experiment1'
 augmentable_folder_airplane_sols = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables_airways_solutions'
 lidar_folder = 'E:/workspaces/LIDAR_WORKSPACE/lidar'
 prediction_dump_path = 'E:/workspaces/LIDAR_WORKSPACE/preds.bin'
@@ -312,4 +312,16 @@ if __name__ == '__main__':
 
     # CREATE NEW AUGMENTABLES FILE WITH RESULTS...
     for name in names:
+
+        if name not in predictions.keys():
+            break
+
+        preds = predictions[name]
+        augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
+
+        # # UNWRAP PREDICTIONS CORRECTLY
+        for i, x in enumerate(augs_swath.augmentables):
+
+            D_pred = preds[i]
+
 
