@@ -47,12 +47,12 @@ class Augmentable:
     def toLine(self):
         line = ''
         line += str(self.idx) + ' '
-        line += ",".join(self.location) + ' '
-        line += ",".join(self.scale) + ' '
+        line += ",".join([str(x) for x in self.location]) + ' '
+        line += ",".join([str(x) for x in self.scale]) + ' '
         line += self.type + ' '
-        line += ",".join(self.airplane_pos) + ' '
+        line += ",".join([str(x) for x in self.airplane_pos]) + ' '
         line += str(self.distance_from_floor) + ' '
-        line += ' '.join([",".join(direction) for direction in self.directions])
+        line += ' '.join([",".join([str(d) for d in direction]) for direction in self.directions])
         return line
 
 

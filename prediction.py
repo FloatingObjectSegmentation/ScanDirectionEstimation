@@ -196,37 +196,37 @@ if __name__ == '__main__':
 
 
     # compare predictions with ground truth
-    nameidx = 0
-    for name in names:
-        nameidx += 1
-        print("processing " + str(nameidx) + " " + name)
-
-        if name not in predictions.keys():
-            break
-
-        preds = predictions[name]
-        augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
-
-        # # UNWRAP PREDICTIONS CORRECTLY
-        for i, x in enumerate(augs_swath.augmentables):
-
-            D_pred = preds[i]
-            if D_pred.airplane_dir == []:
-                continue
-
-            # change hough predictions into actual directions
-            D_pred.houghdirs = [d[0] for d in D_pred.houghdirs]
-            D_pred.houghdirs = [np.array(d[0]) - np.array(d[1]) for d in D_pred.houghdirs]
-
-            # change deriv predictions into actual directions
-            D_pred.derivdirs = [d[0] for d in D_pred.derivdirs]
-            D_pred.derivdirs = [np.array(d[0]) - np.array(d[1]) for d in D_pred.derivdirs]
-
-            # change airplane predictions into actual direction
-            try:
-                D_pred.airplane_dir = np.array(D_pred.airplane_dir[0]) - np.array(D_pred.airplane_dir[1])
-            except:
-                pass
+    # nameidx = 0
+    # for name in names:
+    #     nameidx += 1
+    #     print("processing " + str(nameidx) + " " + name)
+    #
+    #     if name not in predictions.keys():
+    #         break
+    #
+    #     preds = predictions[name]
+    #     augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
+    #
+    #     # # UNWRAP PREDICTIONS CORRECTLY
+    #     for i, x in enumerate(augs_swath.augmentables):
+    #
+    #         D_pred = preds[i]
+    #         if D_pred.airplane_dir == []:
+    #             continue
+    #
+    #         # change hough predictions into actual directions
+    #         D_pred.houghdirs = [d[0] for d in D_pred.houghdirs]
+    #         D_pred.houghdirs = [np.array(d[0]) - np.array(d[1]) for d in D_pred.houghdirs]
+    #
+    #         # change deriv predictions into actual directions
+    #         D_pred.derivdirs = [d[0] for d in D_pred.derivdirs]
+    #         D_pred.derivdirs = [np.array(d[0]) - np.array(d[1]) for d in D_pred.derivdirs]
+    #
+    #         # change airplane predictions into actual direction
+    #         try:
+    #             D_pred.airplane_dir = np.array(D_pred.airplane_dir[0]) - np.array(D_pred.airplane_dir[1])
+    #         except:
+    #             pass
 
 
         # # SWATH ANGLES
@@ -279,49 +279,67 @@ if __name__ == '__main__':
 
 
         #AIRPLANE ANGLES
-        try:
-            augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name,
-                                          appendix='augmentation_result_transformed.txt')
-        except:
-            continue
-
-        for i in range(len(augs_swath.augmentables)):
-
-            D_pred = preds[i]
-            if D_pred.airplane_dir == []:
-                continue
-
-            D_plane = augs_plane.augmentables[i].directions
-            D_plane = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
-
-            if i > 0:
-
-                D_planeprev = augs_plane.augmentables[i - 1].directions
-                D_planeprev = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_planeprev, 2)]
-
-                if all([x[0] == y[0] and x[1] == y[1] for x,y in zip(D_plane, D_planeprev)]):
-                    continue
-
-            # plane
-            minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
-            D_pred.airplanepred = minangle
-            print(90 - minangle)
+        # try:
+        #     augs_plane = common.AugmentableSet(augmentable_folder_airplane_sols, name,
+        #                                   appendix='augmentation_result_transformed.txt')
+        # except:
+        #     continue
+        #
+        # for i in range(len(augs_swath.augmentables)):
+        #
+        #     D_pred = preds[i]
+        #     if D_pred.airplane_dir == []:
+        #         continue
+        #
+        #     D_plane = augs_plane.augmentables[i].directions
+        #     D_plane = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_plane, 2)]
+        #
+        #     if i > 0:
+        #
+        #         D_planeprev = augs_plane.augmentables[i - 1].directions
+        #         D_planeprev = [np.array(a[0]) - np.array(a[1]) for a in common.partition_list(D_planeprev, 2)]
+        #
+        #         if all([x[0] == y[0] and x[1] == y[1] for x,y in zip(D_plane, D_planeprev)]):
+        #             continue
+        #
+        #     # plane
+        #     minangle = min([angle_between_vectors(d, D_pred.airplane_dir) for d in D_plane])
+        #     D_pred.airplanepred = minangle
+        #     print(90 - minangle)
 
     # CREATE LATEX TABLES
     #predictions_to_latex_tables()
 
     # CREATE NEW AUGMENTABLES FILE WITH RESULTS...
+    savedir = 'E:/workspaces/LIDAR_WORKSPACE/augmentation/augmentables_experiment1_finalsolution'
     for name in names:
 
+        augs = common.AugmentableSet(augmentable_folder_swath_sols, name)
         if name not in predictions.keys():
-            break
+            print(name + ' missing')
+            augs.saveToFile(savedir + '/' + name + '.txt')
+            continue
 
         preds = predictions[name]
-        augs_swath = common.AugmentableSet(augmentable_folder_swath_sols, name)
 
         # # UNWRAP PREDICTIONS CORRECTLY
-        for i, x in enumerate(augs_swath.augmentables):
+        lines = []
+        for i, x in enumerate(augs.augmentables):
+            try:
+                D_pred = preds[i]
+                height = D_pred.position[2]
+                curr = augs.augmentables[i]
+                pos = curr.airplane_pos
+                pos[2] = height
+                curr.airplane_pos = pos
+            except:
+                print('PROBLEM')
+                print(preds[i].position)
+                print(i)
+                pass
 
-            D_pred = preds[i]
+        augs.saveToFile(savedir + '/' + name + ".txt")
+
+
 
 
